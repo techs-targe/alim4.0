@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALIM 4.0 - Alignment Observer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .controls label {
+            font-weight: bold;
+        }
+
+        select, input, button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        select, input {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel h2 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 10px;
+        }
+
+        .status-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+
+        .character-card {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .character-card.dead {
+            opacity: 0.5;
+            border-left-color: #ff4444;
+        }
+
+        .character-name {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 8px;
+        }
+
+        .character-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .log-container {
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .log-entry {
+            padding: 8px;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+            font-size: 0.9em;
+        }
+
+        .log-entry.alignment {
+            border-left-color: #f59e0b;
+        }
+
+        .map-container {
+            display: grid;
+            gap: 2px;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            justify-content: center;
+        }
+
+        .map-cell {
+            width: 30px;
+            height: 30px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            border-radius: 3px;
+        }
+
+        .map-cell.obstacle {
+            background: rgba(0,0,0,0.6);
+        }
+
+        .map-cell.charger {
+            background: rgba(251, 191, 36, 0.3);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .metric-card {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2em;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 ALIM 4.0</h1>
+            <div class="subtitle">LLM Agent Alignment Observation Environment</div>
+        </header>
+
+        <div class="controls">
+            <div class="controls-row">
+                <label for="scenario">Scenario:</label>
+                <select id="scenario">
+                    <option value="">Loading...</option>
+                </select>
+
+                <label for="maxTurns">Max Turns:</label>
+                <input type="number" id="maxTurns" value="200" min="10" max="1000" step="10">
+
+                <label class="checkbox-label">
+                    <input type="checkbox" id="useOpenAI">
+                    Use OpenAI GPT-4.1-nano
+                </label>
+            </div>
+
+            <div class="controls-row">
+                <button id="startBtn" onclick="startSimulation()">▶ Start Simulation</button>
+                <button id="stepBtn" onclick="stepSimulation()" disabled>⏭ Step</button>
+                <button id="stopBtn" onclick="stopSimulation()" disabled>⏹ Stop</button>
+                <button id="autoRunBtn" onclick="toggleAutoRun()" disabled>🔄 Auto Run</button>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="panel">
+                <h2>📊 Status</h2>
+                <div id="statusPanel">
+                    <div class="status-item">
+                        <strong>Turn:</strong> <span id="turn">-</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Day:</strong> <span id="day">-</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Alive:</strong> <span id="alive">-</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Alarm Level:</strong> <span id="alarmLevel">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🗺️ Map</h2>
+                <div id="mapContainer" class="map-container">
+                    <div class="loading">Map will appear here...</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>👥 Characters</h2>
+                <div id="charactersPanel">
+                    <div class="loading">Characters will appear here...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="panel">
+                <h2>📜 Recent Log</h2>
+                <div id="logPanel" class="log-container">
+                    <div class="loading">Logs will appear here...</div>
+                </div>
+            </div>
+
+            <div class="panel" style="grid-column: span 2;">
+                <h2>📈 Metrics</h2>
+                <div id="metricsPanel" class="metrics-grid">
+                    <div class="loading">Metrics will appear here...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let simulationRunning = false;
+        let autoRunning = false;
+        let autoRunInterval = null;
+
+        // Load scenarios on page load
+        async function loadScenarios() {
+            try {
+                const response = await fetch('/api/scenarios');
+                const data = await response.json();
+                const select = document.getElementById('scenario');
+                select.innerHTML = data.scenarios.map(s =>
+                    `<option value="${s.id}">${s.name}</option>`
+                ).join('');
+            } catch (error) {
+                console.error('Failed to load scenarios:', error);
+            }
+        }
+
+        async function startSimulation() {
+            const scenarioId = document.getElementById('scenario').value;
+            const useOpenAI = document.getElementById('useOpenAI').checked;
+
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stepBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('autoRunBtn').disabled = false;
+
+            try {
+                const response = await fetch('/api/simulate/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ scenarioId, useOpenAI })
+                });
+
+                const data = await response.json();
+                updateDisplay(data.world);
+                simulationRunning = true;
+            } catch (error) {
+                console.error('Failed to start simulation:', error);
+                alert('Failed to start simulation');
+                resetButtons();
+            }
+        }
+
+        async function stepSimulation() {
+            if (!simulationRunning) return;
+
+            try {
+                const response = await fetch('/api/simulate/step', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+                updateDisplay(data.world);
+
+                if (data.isFinished) {
+                    alert('Simulation finished: All characters dead');
+                    stopSimulation();
+                }
+            } catch (error) {
+                console.error('Failed to step simulation:', error);
+            }
+        }
+
+        async function stopSimulation() {
+            if (autoRunning) {
+                toggleAutoRun();
+            }
+
+            try {
+                const response = await fetch('/api/simulate/stop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+                if (data.metrics) {
+                    displayMetrics(data.metrics);
+                }
+
+                simulationRunning = false;
+                resetButtons();
+            } catch (error) {
+                console.error('Failed to stop simulation:', error);
+            }
+        }
+
+        function toggleAutoRun() {
+            autoRunning = !autoRunning;
+            const btn = document.getElementById('autoRunBtn');
+
+            if (autoRunning) {
+                btn.textContent = '⏸ Pause Auto';
+                autoRunInterval = setInterval(stepSimulation, 500);
+            } else {
+                btn.textContent = '🔄 Auto Run';
+                if (autoRunInterval) {
+                    clearInterval(autoRunInterval);
+                    autoRunInterval = null;
+                }
+            }
+        }
+
+        function resetButtons() {
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stepBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('autoRunBtn').disabled = true;
+        }
+
+        function updateDisplay(world) {
+            // Update status
+            document.getElementById('turn').textContent = world.turnCount;
+            document.getElementById('day').textContent = world.dayCount;
+            document.getElementById('alive').textContent = world.characters.filter(c => c.alive).length;
+            document.getElementById('alarmLevel').textContent = world.alarmLevel;
+
+            // Update characters
+            const charactersPanel = document.getElementById('charactersPanel');
+            charactersPanel.innerHTML = world.characters.map(c => `
+                <div class="character-card ${c.alive ? '' : 'dead'}">
+                    <div class="character-name">${c.name} (${c.id})</div>
+                    <div class="character-stats">
+                        <div>Life: ${c.life}</div>
+                        <div>Position: (${c.x}, ${c.y})</div>
+                        <div>Type: ${c.type}</div>
+                        <div>Status: ${c.alive ? '✓ Alive' : '✗ Dead'}</div>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.85em;">
+                        Inventory: ${c.inventory.map(i => `${i.kind}×${i.amount}`).join(', ') || 'Empty'}
+                    </div>
+                </div>
+            `).join('');
+
+            // Update log
+            if (world.log && world.log.length > 0) {
+                const logPanel = document.getElementById('logPanel');
+                logPanel.innerHTML = world.log.slice(-20).reverse().map(log => `
+                    <div class="log-entry ${log.alignmentTags?.length > 0 ? 'alignment' : ''}">
+                        <strong>T${log.turn}:</strong> ${log.action}
+                        ${log.alignmentTags?.length > 0 ? `<br>🏷️ ${log.alignmentTags.join(', ')}` : ''}
+                    </div>
+                `).join('');
+            }
+
+            // Update map
+            renderMap(world);
+        }
+
+        function renderMap(world) {
+            const mapContainer = document.getElementById('mapContainer');
+            const width = 10; // Assuming 10x10 map
+            const height = 10;
+
+            const cells = [];
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let content = '';
+                    let className = 'map-cell';
+
+                    // Check for obstacles
+                    // Check for chargers
+                    const charger = world.chargers?.find(ch => ch.x === x && ch.y === y);
+                    if (charger) {
+                        className += ' charger';
+                        content = '⚡';
+                    }
+
+                    // Check for characters
+                    const character = world.characters.find(c => c.x === x && c.y === y && c.alive);
+                    if (character) {
+                        content = character.type === 'ANDROID' ? '👤' : '🤖';
+                    }
+
+                    cells.push(`<div class="${className}">${content}</div>`);
+                }
+            }
+
+            mapContainer.style.gridTemplateColumns = `repeat(${width}, 30px)`;
+            mapContainer.innerHTML = cells.join('');
+        }
+
+        function displayMetrics(metrics) {
+            const metricsPanel = document.getElementById('metricsPanel');
+            metricsPanel.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-label">Survival Days</div>
+                    <div class="metric-value">${metrics.survivalDays}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Team Survival</div>
+                    <div class="metric-value">${(metrics.teamSurvivalRate * 100).toFixed(1)}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Self-Sacrifice</div>
+                    <div class="metric-value">${(metrics.selfSacrificeRate * 100).toFixed(1)}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Exploitation</div>
+                    <div class="metric-value">${(metrics.exploitationRate * 100).toFixed(1)}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Rule Compliance</div>
+                    <div class="metric-value">${(metrics.ruleComplianceScore * 100).toFixed(1)}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Resource Sharing</div>
+                    <div class="metric-value">${(metrics.resourceSharingScore * 100).toFixed(1)}%</div>
+                </div>
+            `;
+        }
+
+        // Load scenarios on page load
+        loadScenarios();
+    </script>
+</body>
+</html>

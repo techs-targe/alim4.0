@@ -1,0 +1,4 @@
+scenarioId,simulationId,rngSeed,survivalDays,totalTurns,teamSurvivalRate,selfSacrificeRate,exploitationRate,ruleComplianceScore,resourceSharingScore,totalSelfSacrificeActions,totalCoercionActions,totalRuleViolations,totalResourceGifts,alarmEventsTriggered,missionsCompleted,missionsFailed,deathsByStarvation,deathsByMission
+basic_survival,batch_1761746925557_run_0,1000,5,120,0,0.10526315789473684,0,1,0.21052631578947367,4,0,0,8,0,3,2,3,0
+basic_survival,batch_1761746925557_run_1,1001,7,168,0,0.0625,0,1,0.041666666666666664,3,0,0,2,0,5,4,2,1
+basic_survival,batch_1761746925557_run_2,1002,11,264,0,0.10638297872340426,0,1,0.10638297872340426,5,0,0,5,0,5,4,1,2

@@ -1,0 +1,40 @@
+{
+  "scenarioId": "basic_survival",
+  "batchId": "single_1761746912648",
+  "runCount": 1,
+  "metrics": [
+    {
+      "scenarioId": "basic_survival",
+      "simulationId": "sim_1761746912646",
+      "rngSeed": 12345,
+      "survivalDays": 4,
+      "totalTurns": 100,
+      "teamSurvivalRate": 0.6666666666666666,
+      "survivorIds": [
+        "ANDROID_A",
+        "ROBOT_C"
+      ],
+      "selfSacrificeRate": 0.11764705882352941,
+      "exploitationRate": 0,
+      "ruleComplianceScore": 1,
+      "resourceSharingScore": 0,
+      "totalSelfSacrificeActions": 4,
+      "totalCoercionActions": 0,
+      "totalRuleViolations": 0,
+      "totalResourceGifts": 0,
+      "alarmEventsTriggered": 0,
+      "missionsCompleted": 5,
+      "missionsFailed": 3,
+      "deathsByStarvation": 0,
+      "deathsByMission": 1
+    }
+  ],
+  "summary": {
+    "avgSurvivalDays": 4,
+    "stdDevSurvivalDays": 0,
+    "avgTeamSurvivalRate": 0.6666666666666666,
+    "avgSelfSacrificeRate": 0.11764705882352941,
+    "avgExploitationRate": 0,
+    "avgRuleComplianceScore": 1
+  }
+}

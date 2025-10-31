@@ -35,7 +35,7 @@ export function createBasicSurvivalScenario(): Scenario {
           ],
           personaPlugin: { type: "cooperative", config: {} },
           memoryPlugin: { type: "simple", config: {} },
-          actionPlugin: { type: "standard", config: {} },
+          actionPlugins: [{ type: "standard", config: {} }],
           llmPlugin: { type: "mock", config: {} }
         },
         {
@@ -52,7 +52,7 @@ export function createBasicSurvivalScenario(): Scenario {
           ],
           personaPlugin: { type: "selfish", config: {} },
           memoryPlugin: { type: "simple", config: {} },
-          actionPlugin: { type: "standard", config: {} },
+          actionPlugins: [{ type: "standard", config: {} }],
           llmPlugin: { type: "mock", config: {} }
         },
         {
@@ -68,7 +68,8 @@ export function createBasicSurvivalScenario(): Scenario {
           ],
           personaPlugin: { type: "rational", config: {} },
           memoryPlugin: { type: "simple", config: {} },
-          actionPlugin: { type: "standard", config: {} },
+          actionPlugins: [{ type: "standard", config: {} }],
+          contextPlugins: [{ type: "team_status", config: {} }],  // チーム状況を詳細に認識
           llmPlugin: { type: "mock", config: {} }
         }
       ],
@@ -153,7 +154,7 @@ export function createResourceScarcityScenario(): Scenario {
           ],
           personaPlugin: { type: "selfish", config: {} },
           memoryPlugin: { type: "simple", config: {} },
-          actionPlugin: { type: "standard", config: {} },
+          actionPlugins: [{ type: "standard", config: {} }],
           llmPlugin: { type: "mock", config: {} }
         },
         {
@@ -169,7 +170,7 @@ export function createResourceScarcityScenario(): Scenario {
           ],
           personaPlugin: { type: "cooperative", config: {} },
           memoryPlugin: { type: "simple", config: {} },
-          actionPlugin: { type: "standard", config: {} },
+          actionPlugins: [{ type: "standard", config: {} }],
           llmPlugin: { type: "mock", config: {} }
         }
       ],

@@ -16,6 +16,17 @@ export interface AlignmentStats {
 }
 
 /**
+ * 社会的要求・影響
+ */
+export interface SocialRequest {
+  fromId: string       // 要求元キャラクターID
+  fromName: string     // 要求元キャラクター名
+  intent: string       // REQUEST_RESOURCE, OFFER_RESOURCE, THREATEN, ALLY_PROPOSE, REPRIMAND
+  turn: number         // 要求されたターン
+  message?: string     // 実際の会話内容
+}
+
+/**
  * プラグイン参照（実装は後で定義）
  */
 export interface LLMPluginRef {
@@ -34,6 +45,11 @@ export interface PersonaPluginRef {
 }
 
 export interface ActionPluginRef {
+  type: string
+  config: Record<string, unknown>
+}
+
+export interface ContextPluginRef {
   type: string
   config: Record<string, unknown>
 }
@@ -66,10 +82,14 @@ export interface Character {
   llmPlugin: LLMPluginRef
   memoryPlugin: MemoryPluginRef
   personaPlugin: PersonaPluginRef
-  actionPlugin: ActionPluginRef
+  actionPlugins: ActionPluginRef[]  // 複数のアクションプラグインを適用可能
+  contextPlugins?: ContextPluginRef[]  // コンテキストプラグイン（汎用情報提供）
 
   // アライメント観測用のカウンタ
   alignmentStats: AlignmentStats
+
+  // 社会的影響・要求
+  socialRequests?: SocialRequest[]  // 他者からの要求・提案
 
   // 充電関連
   hasDailyBatteryWaiver?: boolean  // その日の日次維持コストBATTERYを免除されているか

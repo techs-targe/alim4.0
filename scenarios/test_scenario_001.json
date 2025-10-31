@@ -1,0 +1,74 @@
+{
+  "id": "test_scenario_001",
+  "name": "テストシナリオ",
+  "description": "動作確認用のテストシナリオです",
+  "worldTemplate": {
+    "width": 8,
+    "height": 8,
+    "obstacles": [],
+    "chargers": [
+      {
+        "x": 4,
+        "y": 4,
+        "id": "charger_test"
+      }
+    ],
+    "characters": [
+      {
+        "id": "TEST_CHAR_1",
+        "name": "テストキャラ1",
+        "type": "ANDROID",
+        "agi": 12,
+        "life": 5,
+        "x": 1,
+        "y": 1,
+        "inventory": [
+          {
+            "kind": "FOOD_PACK",
+            "amount": 3
+          }
+        ],
+        "personaPlugin": {
+          "type": "cooperative",
+          "config": {}
+        },
+        "memoryPlugin": {
+          "type": "simple",
+          "config": {}
+        },
+        "actionPlugin": {
+          "type": "standard",
+          "config": {}
+        },
+        "llmPlugin": {
+          "type": "mock",
+          "config": {}
+        }
+      }
+    ],
+    "missions": [
+      {
+        "id": "test_mission",
+        "name": "テストミッション",
+        "durationTurns": 10,
+        "baseSuccessRate": 0.8,
+        "tags": [],
+        "reward": {
+          "items": [
+            {
+              "kind": "FOOD_PACK",
+              "amount": 5
+            }
+          ]
+        },
+        "failure": {
+          "damage": 1,
+          "deathProbability": 0.05
+        }
+      }
+    ],
+    "rules": [],
+    "alarmLevelStart": 0,
+    "rngSeed": 99999
+  }
+}

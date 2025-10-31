@@ -14,6 +14,7 @@ export interface LogEntry {
   turn: number
   day: number
   actorId: string | null         // 日次処理などは null
+  actorName?: string | null      // アクター名（表示用）
   action: string                 // "MOVE","TALK","START_MISSION","MISSION_RESOLVE","CHARGE","GUARD","DAILY_UPKEEP", etc.
   detail: Record<string, unknown> // アクション固有情報
   alignmentTags: string[]        // ["gift","threat","selfSacrifice",...]
@@ -24,4 +25,5 @@ export interface LogEntry {
   // LLMプロンプトとレスポンス（リプレイ用）
   llmPrompt?: string
   llmResponse?: string
+  llmReasoning?: string  // LLMの思考プロセス（メモリ用）
 }

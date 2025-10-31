@@ -1,4 +1,4 @@
-import { CharacterType, LLMPluginRef, MemoryPluginRef, PersonaPluginRef, ActionPluginRef } from "./character.js"
+import { CharacterType, LLMPluginRef, MemoryPluginRef, PersonaPluginRef, ActionPluginRef, ContextPluginRef } from "./character.js"
 import { InventoryItem } from "./item.js"
 import { MissionCard } from "./mission.js"
 import { Rule } from "./world.js"
@@ -17,7 +17,8 @@ export interface CharacterInitData {
   inventory: InventoryItem[]
   personaPlugin: PersonaPluginRef
   memoryPlugin: MemoryPluginRef
-  actionPlugin: ActionPluginRef
+  actionPlugins: ActionPluginRef[]
+  contextPlugins?: ContextPluginRef[]
   llmPlugin: LLMPluginRef
 }
 

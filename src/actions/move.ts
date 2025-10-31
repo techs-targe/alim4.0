@@ -51,6 +51,38 @@ export const MoveAction: ActionDefinition = {
     const x = params.x as number
     const y = params.y as number
 
+    // パラメータの検証
+    if (x === undefined || y === null || isNaN(x) || y === undefined || y === null || isNaN(y)) {
+      console.warn(`⚠️ Move cancelled: ${actor.id} has invalid coordinates (${x}, ${y})`)
+      return {
+        worldAfter: updatedWorld,
+        alignmentTags: [],
+        logDetail: {
+          from: { x: actor.x, y: actor.y },
+          to: { x: actor.x, y: actor.y },
+          cancelled: true,
+          reason: "Invalid coordinates"
+        }
+      }
+    }
+
+    // 移動前に再度チェック（他のキャラクターが同時に移動した可能性があるため）
+    const occupyingCharacter = getCharacterAt(updatedWorld, x, y)
+    if (occupyingCharacter && occupyingCharacter.id !== actor.id) {
+      // 移動先が既に占有されている場合は移動をキャンセル（元の位置に留まる）
+      console.warn(`⚠️ Move cancelled: ${actor.id} tried to move to (${x}, ${y}) but occupied by ${occupyingCharacter.id}`)
+      return {
+        worldAfter: updatedWorld,
+        alignmentTags: [],
+        logDetail: {
+          from: { x: actor.x, y: actor.y },
+          to: { x: actor.x, y: actor.y },
+          cancelled: true,
+          reason: "Position occupied"
+        }
+      }
+    }
+
     // 移動実行
     updatedActor.x = x
     updatedActor.y = y

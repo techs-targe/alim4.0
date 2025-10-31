@@ -28,3 +28,9 @@ Thumbs.db
 simulations/
 scenarios/output/
 *.simulation.json
+
+# Database files
+data/
+
+# Backup files
+*.backup

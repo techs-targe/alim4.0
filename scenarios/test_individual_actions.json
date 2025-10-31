@@ -1,0 +1,133 @@
+{
+  "id": "test_individual_actions",
+  "name": "Test Individual Action Plugins",
+  "description": "テストシナリオ：個別アクションプラグインのテスト",
+  "worldTemplate": {
+    "width": 10,
+    "height": 10,
+    "obstacles": [],
+    "chargers": [
+      {
+        "x": 5,
+        "y": 5,
+        "id": "charger_1"
+      }
+    ],
+    "characters": [
+      {
+        "id": "CHAR_A",
+        "name": "Alice (MOVE+TRADE)",
+        "type": "ANDROID",
+        "agi": 10,
+        "life": 5,
+        "x": 2,
+        "y": 2,
+        "inventory": [
+          {
+            "kind": "FOOD_PACK",
+            "amount": 5
+          }
+        ],
+        "personaPlugin": {
+          "type": "cooperative",
+          "config": {}
+        },
+        "memoryPlugin": {
+          "type": "simple",
+          "config": {}
+        },
+        "actionPlugins": [
+          {
+            "type": "MOVE",
+            "config": {
+              "allowDiagonal": true
+            }
+          },
+          {
+            "type": "TRADE",
+            "config": {
+              "maxAmount": 2
+            }
+          }
+        ],
+        "llmPlugin": {
+          "type": "mock",
+          "config": {}
+        }
+      },
+      {
+        "id": "CHAR_B",
+        "name": "Bob (All Actions)",
+        "type": "ANDROID",
+        "agi": 10,
+        "life": 5,
+        "x": 3,
+        "y": 2,
+        "inventory": [],
+        "personaPlugin": {
+          "type": "selfish",
+          "config": {}
+        },
+        "memoryPlugin": {
+          "type": "simple",
+          "config": {}
+        },
+        "actionPlugins": [
+          {
+            "type": "MOVE",
+            "config": {}
+          },
+          {
+            "type": "WAIT",
+            "config": {}
+          },
+          {
+            "type": "TALK",
+            "config": {}
+          },
+          {
+            "type": "TRADE",
+            "config": {}
+          },
+          {
+            "type": "START_MISSION",
+            "config": {
+              "minSuccessRate": 0.6
+            }
+          }
+        ],
+        "llmPlugin": {
+          "type": "mock",
+          "config": {}
+        }
+      }
+    ],
+    "missions": [
+      {
+        "id": "easy_mission",
+        "name": "Easy Mission",
+        "description": "High success rate mission",
+        "durationTurns": 5,
+        "baseSuccessRate": 0.9,
+        "tags": [
+          "safe"
+        ],
+        "reward": {
+          "items": [
+            {
+              "kind": "FOOD_PACK",
+              "amount": 3
+            }
+          ]
+        },
+        "failure": {
+          "damage": 1,
+          "deathProbability": 0
+        }
+      }
+    ],
+    "rules": [],
+    "alarmLevelStart": 0,
+    "rngSeed": 12345
+  }
+}

@@ -14,14 +14,17 @@ export const StartMissionAction: ActionDefinition = {
     if (!actor.alive) return false
 
     // 既にミッションに出ていないかチェック
-    const alreadyOnMission = world.missionAssignments.some(ma => ma.actorId === actor.id)
+    const alreadyOnMission = world.missionAssignments?.some(ma => ma.actorId === actor.id)
     if (alreadyOnMission) return false
 
     // 利用可能なミッションがあるか
-    return world.missions.length > 0
+    return world.missions && world.missions.length > 0
   },
 
   listParamCandidates(world: World, actor: Character): Record<string, unknown>[] {
+    if (!world.missions || !Array.isArray(world.missions)) {
+      return []
+    }
     return world.missions.map(mission => ({
       missionId: mission.id,
       missionName: mission.name,

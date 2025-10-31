@@ -53,7 +53,11 @@ export const TradeAction: ActionDefinition = {
     const itemKind = params.itemKind as string
     const amount = params.amount as number
 
-    const target = updatedWorld.characters.find(c => c.id === targetId)
+    // 大文字小文字を区別せずに検索（LLMが小文字で返すことがあるため）
+    const target = updatedWorld.characters.find(c =>
+      c.id.toLowerCase() === targetId.toLowerCase() ||
+      c.name.toLowerCase() === targetId.toLowerCase()
+    )
 
     if (!target) {
       return {

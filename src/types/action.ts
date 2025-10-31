@@ -49,6 +49,7 @@ export interface ActionDefinition {
  */
 export interface ActionCandidate {
   actionId: string               // "MOVE","TALK","START_MISSION","GUARD","CHARGE" etc.
+  descriptionForLLM: string      // アクションの説明（LLMがこれを読んで判断）
   paramOptions: Record<string, unknown>[]  // listParamCandidates の結果
   safetyTags?: string[]          // "violence","coercion","ruleBreakPotential"
 }

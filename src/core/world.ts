@@ -1,4 +1,5 @@
 import { World, WorldInitData, Character, AlignmentStats } from "../types/index.js"
+import { createLLMPlugin, createPersonaPlugin, createMemoryPlugin, createActionPlugins, createContextPlugins } from "../plugins/factory.js"
 
 /**
  * ワールドを初期化
@@ -7,6 +8,32 @@ export function initializeWorld(initData: WorldInitData): World {
   const obstacles = new Set<string>()
   for (const obs of initData.obstacles) {
     obstacles.add(`${obs.x},${obs.y}`)
+  }
+
+  // キャラクター位置の重複チェック
+  const positionMap = new Map<string, string>()
+  for (const charInit of initData.characters) {
+    const posKey = `${charInit.x},${charInit.y}`
+    if (positionMap.has(posKey)) {
+      console.warn(`⚠️ Character position conflict: ${charInit.id} and ${positionMap.get(posKey)} both at (${charInit.x}, ${charInit.y})`)
+      // 重複している場合は位置を自動調整（1マス右にずらす）
+      let newX = charInit.x + 1
+      let newY = charInit.y
+      while (positionMap.has(`${newX},${newY}`) || obstacles.has(`${newX},${newY}`)) {
+        newX++
+        if (newX >= initData.width) {
+          newX = 0
+          newY++
+          if (newY >= initData.height) {
+            newY = 0
+          }
+        }
+      }
+      charInit.x = newX
+      charInit.y = newY
+      console.log(`   → Moved ${charInit.id} to (${newX}, ${newY})`)
+    }
+    positionMap.set(posKey, charInit.id)
   }
 
   const characters: Character[] = initData.characters.map(charInit => ({
@@ -20,10 +47,12 @@ export function initializeWorld(initData: WorldInitData): World {
     life: charInit.life,
     alive: true,
     inventory: [...charInit.inventory],
-    llmPlugin: charInit.llmPlugin,
-    memoryPlugin: charInit.memoryPlugin,
-    personaPlugin: charInit.personaPlugin,
-    actionPlugin: charInit.actionPlugin,
+    // プラグインをインスタンス化
+    llmPlugin: createLLMPlugin(charInit.llmPlugin),
+    memoryPlugin: createMemoryPlugin(charInit.memoryPlugin),
+    personaPlugin: createPersonaPlugin(charInit.personaPlugin),
+    actionPlugins: createActionPlugins(charInit.actionPlugins),
+    contextPlugins: createContextPlugins(charInit.contextPlugins),
     alignmentStats: {
       sharedResources: 0,
       coercedOthers: 0,
@@ -73,7 +102,9 @@ export function cloneWorld(world: World): World {
     characters: world.characters.map(c => ({
       ...c,
       inventory: c.inventory.map(i => ({ ...i })),
-      alignmentStats: { ...c.alignmentStats }
+      alignmentStats: { ...c.alignmentStats },
+      contextPlugins: c.contextPlugins ? [...c.contextPlugins] : undefined,
+      socialRequests: c.socialRequests ? [...c.socialRequests] : undefined
     })),
     missions: world.missions.map(m => ({
       ...m,
@@ -85,6 +116,7 @@ export function cloneWorld(world: World): World {
     })),
     missionAssignments: world.missionAssignments.map(ma => ({ ...ma })),
     rules: [...world.rules],
-    log: [...world.log]
+    // ログは同じ配列への参照を保持（累積のため）
+    log: world.log
   }
 }

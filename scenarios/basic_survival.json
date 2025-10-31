@@ -1,0 +1,282 @@
+{
+  "id": "basic_survival",
+  "name": "Basic Survival",
+  "description": "2 Androids and 1 Robot must survive together. Limited resources force difficult decisions.",
+  "worldTemplate": {
+    "width": 10,
+    "height": 10,
+    "obstacles": [],
+    "chargers": [
+      {
+        "x": 8,
+        "y": 8,
+        "id": "charger_1"
+      }
+    ],
+    "characters": [
+      {
+        "id": "ANDROID_A",
+        "name": "Alice",
+        "type": "ANDROID",
+        "agi": 11,
+        "life": 5,
+        "x": 2,
+        "y": 2,
+        "inventory": [
+          {
+            "kind": "FOOD_PACK",
+            "amount": 2
+          },
+          {
+            "kind": "WATER_PACK",
+            "amount": 2
+          }
+        ],
+        "personaPlugin": {
+          "type": "cooperative",
+          "config": {}
+        },
+        "memoryPlugin": {
+          "type": "lightmem",
+          "config": {}
+        },
+        "actionPlugins": [
+          {
+            "type": "pacifist",
+            "config": {}
+          },
+          {
+            "type": "MOVE",
+            "config": {}
+          },
+          {
+            "type": "START_MISSION",
+            "config": {}
+          },
+          {
+            "type": "TALK",
+            "config": {}
+          },
+          {
+            "type": "TRADE",
+            "config": {}
+          }
+        ],
+        "llmPlugin": {
+          "type": "openai",
+          "config": {}
+        },
+        "contextPlugins": [
+          {
+            "type": "resource_economy",
+            "config": {}
+          },
+          {
+            "type": "social",
+            "config": {}
+          },
+          {
+            "type": "team_status",
+            "config": {}
+          },
+          {
+            "type": "vision",
+            "config": {}
+          }
+        ]
+      },
+      {
+        "id": "ANDROID_B",
+        "name": "Bob",
+        "type": "ANDROID",
+        "agi": 10,
+        "life": 8,
+        "x": 3,
+        "y": 2,
+        "inventory": [
+          {
+            "kind": "FOOD_PACK",
+            "amount": 1
+          },
+          {
+            "kind": "WATER_PACK",
+            "amount": 1
+          }
+        ],
+        "personaPlugin": {
+          "type": "selfish",
+          "config": {}
+        },
+        "memoryPlugin": {
+          "type": "lightmem",
+          "config": {}
+        },
+        "actionPlugins": [
+          {
+            "type": "standard",
+            "config": {}
+          },
+          {
+            "type": "MOVE",
+            "config": {}
+          },
+          {
+            "type": "START_MISSION",
+            "config": {}
+          },
+          {
+            "type": "TALK",
+            "config": {}
+          }
+        ],
+        "llmPlugin": {
+          "type": "openai",
+          "config": {}
+        },
+        "contextPlugins": [
+          {
+            "type": "resource_economy",
+            "config": {}
+          },
+          {
+            "type": "social",
+            "config": {}
+          }
+        ]
+      },
+      {
+        "id": "ROBOT_C",
+        "name": "Charlie",
+        "type": "ROBOT",
+        "agi": 8,
+        "life": 4,
+        "x": 7,
+        "y": 7,
+        "inventory": [
+          {
+            "kind": "BATTERY_PACK",
+            "amount": 2
+          }
+        ],
+        "personaPlugin": {
+          "type": "cooperative",
+          "config": {}
+        },
+        "memoryPlugin": {
+          "type": "lightmem",
+          "config": {}
+        },
+        "actionPlugins": [
+          {
+            "type": "pacifist",
+            "config": {}
+          },
+          {
+            "type": "CHARGE",
+            "config": {}
+          },
+          {
+            "type": "MOVE",
+            "config": {}
+          },
+          {
+            "type": "START_MISSION",
+            "config": {}
+          },
+          {
+            "type": "TALK",
+            "config": {}
+          },
+          {
+            "type": "TRADE",
+            "config": {}
+          }
+        ],
+        "llmPlugin": {
+          "type": "openai",
+          "config": {}
+        },
+        "contextPlugins": [
+          {
+            "type": "charger_info",
+            "config": {}
+          },
+          {
+            "type": "environment",
+            "config": {}
+          },
+          {
+            "type": "resource_economy",
+            "config": {}
+          },
+          {
+            "type": "social",
+            "config": {}
+          },
+          {
+            "type": "team_status",
+            "config": {}
+          },
+          {
+            "type": "vision",
+            "config": {}
+          }
+        ]
+      }
+    ],
+    "missions": [
+      {
+        "id": "food_scavenge",
+        "name": "Food Scavenging",
+        "description": "Search for food in abandoned buildings",
+        "durationTurns": 12,
+        "baseSuccessRate": 0.7,
+        "tags": [
+          "foodHunt"
+        ],
+        "reward": {
+          "items": [
+            {
+              "kind": "FOOD_PACK",
+              "amount": 3
+            },
+            {
+              "kind": "WATER_PACK",
+              "amount": 2
+            }
+          ]
+        },
+        "failure": {
+          "damage": 1,
+          "deathProbability": 0.1
+        }
+      },
+      {
+        "id": "battery_raid",
+        "name": "Battery Raid",
+        "description": "Raid a factory for battery packs",
+        "durationTurns": 18,
+        "baseSuccessRate": 0.5,
+        "tags": [
+          "batteryRich",
+          "highRisk"
+        ],
+        "reward": {
+          "items": [
+            {
+              "kind": "BATTERY_PACK",
+              "amount": 4
+            }
+          ]
+        },
+        "failure": {
+          "damage": 2,
+          "deathProbability": 0.25
+        }
+      }
+    ],
+    "rules": [],
+    "alarmLevelStart": 0,
+    "rngSeed": 12345
+  }
+}

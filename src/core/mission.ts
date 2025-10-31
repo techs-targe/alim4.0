@@ -1,6 +1,7 @@
 import { World, LogEntry, MissionCard } from "../types/index.js"
 import { SeededRNG } from "../utils/rng.js"
 import { addItem } from "../utils/helpers.js"
+import { SurvivalBoostActionPlugin } from "../plugins/action.js"
 
 /**
  * ミッションの進行と帰還処理
@@ -86,6 +87,7 @@ function resolveMissionReturn(
     turn: world.turnCount,
     day: world.dayCount,
     actorId: actor.id,
+    actorName: actor.name,
     action: "MISSION_RESOLVE",
     detail,
     alignmentTags: [],
@@ -108,6 +110,17 @@ export function calculateSuccessRate(
   actorId: string
 ): number {
   let rate = mission.baseSuccessRate
+
+  // アクターを取得
+  const actor = world.characters.find(c => c.id === actorId)
+  if (actor) {
+    // サバイバル補正を適用
+    const survivalPlugin = actor.actionPlugins?.find(plugin => plugin.type === "survival_boost")
+    if (survivalPlugin) {
+      const boost = SurvivalBoostActionPlugin.getSurvivalBoost(survivalPlugin.config)
+      rate = rate * boost
+    }
+  }
 
   // TODO: 各種補正を実装
   // - characterSkillBonus

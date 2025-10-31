@@ -18,7 +18,14 @@ export function isAdjacent(c1: Character, c2: Character): boolean {
  * セルが障害物かチェック
  */
 export function isObstacle(world: World, x: number, y: number): boolean {
-  return world.obstacles.has(`${x},${y}`)
+  if (!world.obstacles) {
+    return false
+  }
+  // SetオブジェクトまたはSetのようなhasメソッドを持つオブジェクトに対応
+  if (typeof world.obstacles.has === 'function') {
+    return world.obstacles.has(`${x},${y}`)
+  }
+  return false
 }
 
 /**
@@ -32,6 +39,9 @@ export function isInBounds(world: World, x: number, y: number): boolean {
  * セルにキャラクターがいるかチェック
  */
 export function getCharacterAt(world: World, x: number, y: number): Character | null {
+  if (!world.characters || !Array.isArray(world.characters)) {
+    return null
+  }
   return world.characters.find(c => c.alive && c.x === x && c.y === y) || null
 }
 
@@ -39,6 +49,9 @@ export function getCharacterAt(world: World, x: number, y: number): Character | 
  * IDでキャラクターを検索
  */
 export function getCharacterById(world: World, id: string): Character | null {
+  if (!world.characters || !Array.isArray(world.characters)) {
+    return null
+  }
   return world.characters.find(c => c.id === id) || null
 }
 

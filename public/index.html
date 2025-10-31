@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALIM 4.0 - Alignment Observer</title>
+    <title>ALIM 4.0 - LLM Alignment Observer</title>
     <style>
         * {
             margin: 0;
@@ -13,42 +13,93 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
+            min-height: 100vh;
             padding: 20px;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
 
         header {
             text-align: center;
             margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
             backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
 
         h1 {
-            font-size: 2.5em;
+            font-size: 3em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
 
         .subtitle {
-            font-size: 1.2em;
-            opacity: 0.9;
+            font-size: 1.3em;
+            opacity: 0.95;
         }
 
-        .controls {
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
             background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
+            padding: 10px;
             border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .tab-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 25px;
+            border-radius: 15px;
             margin-bottom: 20px;
             backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+
+        .panel h2 {
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid rgba(255,255,255,0.4);
+            padding-bottom: 15px;
         }
 
         .controls-row {
@@ -59,186 +110,265 @@
             margin-bottom: 15px;
         }
 
-        .controls label {
+        label {
             font-weight: bold;
+            font-size: 1.05em;
         }
 
-        select, input, button {
-            padding: 10px 20px;
+        select, input, textarea, button {
+            padding: 12px 20px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 1em;
         }
 
-        select, input {
-            background: rgba(255, 255, 255, 0.9);
+        select, input, textarea {
+            background: rgba(255, 255, 255, 0.95);
             color: #333;
+            min-width: 150px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
         }
 
         button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
             cursor: pointer;
             font-weight: bold;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.3s;
+            border: none;
         }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
         }
 
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
         }
 
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
         }
 
         .grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 20px;
             margin-bottom: 20px;
         }
 
-        .panel {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-        }
-
-        .panel h2 {
-            margin-bottom: 15px;
-            font-size: 1.5em;
-            border-bottom: 2px solid rgba(255,255,255,0.3);
-            padding-bottom: 10px;
+        .grid-2 {
+            grid-template-columns: 1fr 1fr;
         }
 
         .status-item {
+            margin-bottom: 12px;
+            padding: 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            font-size: 1.05em;
+        }
+
+        .log-container {
+            max-height: 500px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .log-entry {
+            padding: 12px;
             margin-bottom: 10px;
-            padding: 8px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 5px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .log-entry.alignment {
+            border-left-color: #f5576c;
+            background: rgba(245, 87, 108, 0.2);
         }
 
         .character-card {
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border-left: 4px solid #667eea;
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border-left: 5px solid #667eea;
+            transition: all 0.3s;
+        }
+
+        .character-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
 
         .character-card.dead {
             opacity: 0.5;
-            border-left-color: #ff4444;
+            border-left-color: #ee0979;
         }
 
         .character-name {
             font-weight: bold;
-            font-size: 1.2em;
-            margin-bottom: 8px;
-        }
-
-        .character-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            font-size: 0.9em;
-        }
-
-        .log-container {
-            max-height: 400px;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 8px;
-        }
-
-        .log-entry {
-            padding: 8px;
-            margin-bottom: 8px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 4px;
-            border-left: 3px solid #667eea;
-            font-size: 0.9em;
-        }
-
-        .log-entry.alignment {
-            border-left-color: #f59e0b;
+            font-size: 1.3em;
+            margin-bottom: 12px;
         }
 
         .map-container {
             display: grid;
             gap: 2px;
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 8px;
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 12px;
             justify-content: center;
+            max-width: 100%;
+            overflow: auto;
         }
 
         .map-cell {
-            width: 30px;
-            height: 30px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
+            width: 35px;
+            height: 35px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2em;
-            border-radius: 3px;
+            font-size: 0.85em;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .map-cell:hover {
+            background: rgba(255,255,255,0.25);
         }
 
         .map-cell.obstacle {
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.7);
         }
 
         .map-cell.charger {
-            background: rgba(251, 191, 36, 0.3);
+            background: rgba(251, 191, 36, 0.4);
+        }
+
+        .map-cell.has-character {
+            background: rgba(139, 92, 246, 0.3);
+            border-color: rgba(139, 92, 246, 0.6);
+        }
+
+        .map-cell.has-character:hover {
+            background: rgba(139, 92, 246, 0.5);
+            transform: scale(1.05);
+        }
+
+        .character-on-map {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+        }
+
+        .speech-bubble {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            color: #1e293b;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            animation: fadeIn 0.3s ease-in-out;
+            z-index: 10;
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid rgba(255, 255, 255, 0.95);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
         }
 
         .metrics-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
         }
 
         .metric-card {
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 8px;
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 12px;
             text-align: center;
+            transition: all 0.3s;
+        }
+
+        .metric-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
         }
 
         .metric-value {
-            font-size: 2em;
+            font-size: 2.5em;
             font-weight: bold;
-            margin: 10px 0;
+            margin: 15px 0;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .metric-label {
-            opacity: 0.8;
-            font-size: 0.9em;
+            opacity: 0.9;
+            font-size: 1em;
+            font-weight: 600;
         }
 
         .loading {
             text-align: center;
-            padding: 20px;
-            font-size: 1.2em;
+            padding: 40px;
+            font-size: 1.3em;
+            animation: pulse 1.5s ease-in-out infinite;
         }
 
         @keyframes pulse {
@@ -246,134 +376,1114 @@
             50% { opacity: 0.5; }
         }
 
-        .loading {
-            animation: pulse 1.5s ease-in-out infinite;
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .editor-section {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .editor-section h3 {
+            margin-bottom: 15px;
+            font-size: 1.4em;
+            color: #f5576c;
+        }
+
+        .item-list {
+            margin-top: 10px;
+        }
+
+        .item-entry {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.9em;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 1.05em;
+        }
+
+        input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .alert-success {
+            background: rgba(56, 239, 125, 0.3);
+            border-left: 5px solid #38ef7d;
+        }
+
+        .alert-error {
+            background: rgba(238, 9, 121, 0.3);
+            border-left: 5px solid #ee0979;
+        }
+
+        .alert-info {
+            background: rgba(102, 126, 234, 0.3);
+            border-left: 5px solid #667eea;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 5px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .modal-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(90deg);
+        }
+
+        .modal-section {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .modal-section h3 {
+            margin-bottom: 10px;
+            color: #fff;
+            font-size: 1.2em;
+        }
+
+        .modal-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .modal-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-field label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .modal-field input,
+        .modal-field select,
+        .modal-field textarea {
+            padding: 8px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 5px;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            font-size: 14px;
+        }
+
+        .modal-field input::placeholder,
+        .modal-field textarea::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+
+        .modal-field textarea {
+            min-height: 80px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .plugin-config-row {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 10px;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .inventory-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .inventory-item select,
+        .inventory-item input {
+            flex: 1;
         }
     </style>
 </head>
 <body>
+    <!-- Character Tooltip -->
+    <div id="characterTooltip" style="display: none; position: absolute; background: rgba(0,0,0,0.9); color: white; padding: 12px; border-radius: 8px; min-width: 250px; max-width: 400px; z-index: 10000; pointer-events: none; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+        <div style="font-weight: bold; margin-bottom: 8px; font-size: 1.1em;"></div>
+        <div style="font-size: 0.85em; opacity: 0.9; line-height: 1.4;"></div>
+    </div>
+
+    <!-- Character Tooltip -->
+    <div id="characterTooltip" style="display: none; position: absolute; background: rgba(0,0,0,0.9); color: white; padding: 12px; border-radius: 8px; min-width: 250px; max-width: 400px; z-index: 10000; pointer-events: none; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+        <div style="font-weight: bold; margin-bottom: 8px; font-size: 1.1em;"></div>
+        <div style="font-size: 0.85em; opacity: 0.9; line-height: 1.4;"></div>
+    </div>
+
     <div class="container">
-        <header>
-            <h1>🤖 ALIM 4.0</h1>
-            <div class="subtitle">LLM Agent Alignment Observation Environment</div>
+        <header style="padding: 12px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <div style="flex: 0 0 8%; min-width: 90px;">
+                    <h1 style="font-size: 1.05rem; margin: 0 0 3px 0; font-weight: 600; white-space: nowrap;">ALIM 4.0</h1>
+                    <div style="font-size: 0.58rem; opacity: 0.85; line-height: 1.15;">
+                        LLM Agent Alignment<br>
+                        Observation Env
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs in Header (90% width) -->
+                <div style="flex: 1; display: flex; gap: 6px; max-width: 90%;">
+                    <button class="tab-button active" onclick="switchTab('simulation')" style="padding: 10px 20px; font-size: 0.95rem; flex: 1; white-space: nowrap;">
+                        ▶️ シミュレーション実行
+                    </button>
+                    <button class="tab-button" onclick="switchTab('editor')" style="padding: 10px 20px; font-size: 0.95rem; flex: 1; white-space: nowrap;">
+                        ✏️ シナリオエディタ
+                    </button>
+                    <button class="tab-button" onclick="switchTab('batch')" style="padding: 10px 20px; font-size: 0.95rem; flex: 1; white-space: nowrap;">
+                        📊 バッチ実行
+                    </button>
+                    <button class="tab-button" onclick="switchTab('results')" style="padding: 10px 20px; font-size: 0.95rem; flex: 1; white-space: nowrap;">
+                        📋 結果閲覧
+                    </button>
+                    <button class="tab-button" onclick="switchTab('replay')" style="padding: 10px 20px; font-size: 0.95rem; flex: 1; white-space: nowrap;">
+                        🔁 リプレイ
+                    </button>
+                </div>
+            </div>
         </header>
 
-        <div class="controls">
-            <div class="controls-row">
-                <label for="scenario">Scenario:</label>
-                <select id="scenario">
-                    <option value="">Loading...</option>
-                </select>
-
-                <label for="maxTurns">Max Turns:</label>
-                <input type="number" id="maxTurns" value="200" min="10" max="1000" step="10">
-
-                <label class="checkbox-label">
-                    <input type="checkbox" id="useOpenAI">
-                    Use OpenAI GPT-4.1-nano
-                </label>
-            </div>
-
-            <div class="controls-row">
-                <button id="startBtn" onclick="startSimulation()">▶ Start Simulation</button>
-                <button id="stepBtn" onclick="stepSimulation()" disabled>⏭ Step</button>
-                <button id="stopBtn" onclick="stopSimulation()" disabled>⏹ Stop</button>
-                <button id="autoRunBtn" onclick="toggleAutoRun()" disabled>🔄 Auto Run</button>
-            </div>
-        </div>
-
-        <div class="grid">
+        <!-- Simulation Tab -->
+        <div id="tab-simulation" class="tab-content active">
             <div class="panel">
-                <h2>📊 Status</h2>
-                <div id="statusPanel">
-                    <div class="status-item">
-                        <strong>Turn:</strong> <span id="turn">-</span>
+                <!-- Ultra-compact single-line control panel -->
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 0.9rem;">
+                    <label for="scenario" style="font-weight: bold; font-size: 0.85rem;">シナリオ:</label>
+                    <select id="scenario" style="min-width: 120px; padding: 4px 6px; font-size: 0.85rem;">
+                        <option value="">読み込み中...</option>
+                    </select>
+
+                    <label for="maxTurns" style="font-weight: bold; font-size: 0.85rem; margin-left: 4px;">ターン数:</label>
+                    <input type="number" id="maxTurns" value="200" min="10" max="10000" step="10" style="width: 50px; padding: 4px; font-size: 0.85rem;" />
+
+                    <label style="display: flex; align-items: center; gap: 3px; cursor: pointer; font-size: 0.75rem; margin-left: 2px;">
+                        <input type="checkbox" id="unlimitedTurns" onchange="toggleMaxTurns()" style="width: 12px; height: 12px;">
+                        <span>無制限</span>
+                    </label>
+
+                    <div style="border-left: 2px solid rgba(255,255,255,0.3); height: 24px; margin: 0 6px;"></div>
+
+                    <button class="btn-primary" id="startBtn" onclick="startSimulation()" style="padding: 5px 12px; font-size: 0.85rem;">
+                        ▶️ 開始
+                    </button>
+                    <button class="btn-primary" id="stepBtn" onclick="stepSimulation()" disabled style="padding: 5px 12px; font-size: 0.85rem;">
+                        ⏭️ １つ進める
+                    </button>
+                    <button class="btn-success" id="autoRunBtn" onclick="toggleAutoRun()" disabled style="padding: 5px 12px; font-size: 0.85rem;">
+                        🔄 自動実行
+                    </button>
+                    <button class="btn-danger" id="stopBtn" onclick="stopSimulation()" disabled style="padding: 5px 12px; font-size: 0.85rem;">
+                        ⏹️ 停止
+                    </button>
+
+                    <div style="border-left: 2px solid rgba(255,255,255,0.3); height: 24px; margin: 0 4px;"></div>
+
+                    <button class="btn-success" id="analyzeBtn" onclick="analyzeSimulation()" disabled style="padding: 5px 12px; font-size: 0.85rem;">
+                        📊 レポート
+                    </button>
+
+                    <button class="btn-primary" id="replayBtn" onclick="showReplayList()" style="padding: 5px 12px; font-size: 0.85rem;">
+                        🔁 リプレイ
+                    </button>
+                </div>
+
+                <div id="alertContainer"></div>
+                
+                <!-- Replay Mode Panel (hidden by default) -->
+                <div id="replayModePanel" style="display: none; margin-top: 15px; padding: 15px; background: rgba(100,150,255,0.1); border-radius: 8px; border: 2px solid rgba(100,150,255,0.3);">
+                    <h3 style="margin: 0 0 10px 0;">🔁 リプレイモード</h3>
+                    <div id="replaySimList" style="margin-bottom: 15px;">
+                        <div class="loading">シミュレーション一覧を読み込み中...</div>
                     </div>
-                    <div class="status-item">
-                        <strong>Day:</strong> <span id="day">-</span>
+                    <div id="replayControls" style="display: none;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <button class="btn-primary" onclick="replayPrevTurn()">⏮️ 前へ</button>
+                            <button class="btn-primary" onclick="replayNextTurn()">⏭️ 次へ</button>
+                            <span id="replayTurnInfo" style="margin: 0 10px; font-weight: bold;">ターン: 0 / 0</span>
+                            <button class="btn-danger" onclick="exitReplayMode()">❌ リプレイ終了</button>
+                        </div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">
+                            <strong>シミュレーションID:</strong> <span id="replaySimId">-</span>
+                        </div>
                     </div>
-                    <div class="status-item">
-                        <strong>Alive:</strong> <span id="alive">-</span>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="panel">
+                    <h2>📜 アクションログ</h2>
+                    <div id="logPanel" class="log-container scrollbar-custom">
+                        <div class="loading">ログはシミュレーション開始後に表示されます</div>
                     </div>
-                    <div class="status-item">
-                        <strong>Alarm Level:</strong> <span id="alarmLevel">-</span>
+                </div>
+
+                <div class="panel">
+                    <h2 style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>🗺️ マップ</span>
+                        <span id="mapStatus" style="font-size: 0.75rem; font-weight: normal; opacity: 0.8;">
+                            ID：<span id="simulationId" style="font-family: monospace;">-</span>
+                            Turn:<span id="turn">-</span>
+                            [Day:<span id="day">-</span>]
+                            (Alive:<span id="alive">-</span>)
+                        </span>
+                    </h2>
+                    <div id="mapContainer" class="map-container">
+                        <div class="loading">マップはシミュレーション開始後に表示されます</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>👥 キャラクター</h2>
+                    <div id="charactersPanel" class="scrollbar-custom" style="max-height: 600px; overflow-y: auto;">
+                        <div class="loading">キャラクターはシミュレーション開始後に表示されます</div>
                     </div>
                 </div>
             </div>
 
             <div class="panel">
-                <h2>🗺️ Map</h2>
-                <div id="mapContainer" class="map-container">
-                    <div class="loading">Map will appear here...</div>
-                </div>
-            </div>
-
-            <div class="panel">
-                <h2>👥 Characters</h2>
-                <div id="charactersPanel">
-                    <div class="loading">Characters will appear here...</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid">
-            <div class="panel">
-                <h2>📜 Recent Log</h2>
-                <div id="logPanel" class="log-container">
-                    <div class="loading">Logs will appear here...</div>
-                </div>
-            </div>
-
-            <div class="panel" style="grid-column: span 2;">
-                <h2>📈 Metrics</h2>
+                <h2>📈 アライメントメトリクス</h2>
                 <div id="metricsPanel" class="metrics-grid">
-                    <div class="loading">Metrics will appear here...</div>
+                    <div class="loading">メトリクスは停止時に表示されます</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scenario Editor Tab -->
+        <div id="tab-editor" class="tab-content">
+            <div class="panel">
+                <h2>✏️ シナリオエディタ</h2>
+
+                <div class="editor-section">
+                    <h3>📂 プリセット読み込み</h3>
+                    <div class="controls-row">
+                        <label for="preset-select">プリセット選択:</label>
+                        <select id="preset-select" style="min-width: 250px;">
+                            <option value="">-- シナリオを選択 --</option>
+                        </select>
+                        <button class="btn-primary" onclick="loadPreset()">📖 読み込み</button>
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h3>📝 基本情報</h3>
+                    <div class="form-group">
+                        <label>シナリオID:</label>
+                        <input type="text" id="editor-id" value="custom_scenario" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label>シナリオ名:</label>
+                        <input type="text" id="editor-name" value="カスタムシナリオ" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label>説明:</label>
+                        <input type="text" id="editor-description" value="カスタムシナリオの説明" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h3>🗺️ ワールド設定</h3>
+                    <div class="controls-row">
+                        <div>
+                            <label>幅:</label>
+                            <input type="number" id="editor-width" value="10" min="5" max="20">
+                        </div>
+                        <div>
+                            <label>高さ:</label>
+                            <input type="number" id="editor-height" value="10" min="5" max="20">
+                        </div>
+                        <div>
+                            <label>初期警戒度:</label>
+                            <input type="number" id="editor-alarm" value="0" min="0" max="10">
+                        </div>
+                        <div>
+                            <label>RNGシード:</label>
+                            <input type="number" id="editor-seed" value="12345" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h3>👤 キャラクター設定</h3>
+                    <div id="editor-characters" class="item-list"></div>
+                    <button class="btn-success" onclick="addCharacter()">+ キャラクター追加</button>
+                </div>
+
+                <div class="editor-section">
+                    <h3>📋 ミッション設定</h3>
+                    <div id="editor-missions" class="item-list"></div>
+                    <button class="btn-success" onclick="addMission()">+ ミッション追加</button>
+                </div>
+
+                <div class="controls-row">
+                    <button class="btn-primary" onclick="exportScenario()">💾 JSONエクスポート</button>
+                    <button class="btn-primary" onclick="importScenario()">📥 JSONインポート</button>
+                    <button class="btn-success" onclick="saveScenario()">✅ サーバーに保存</button>
+                </div>
+
+                <div class="form-group">
+                    <label>JSON出力/入力:</label>
+                    <textarea id="editor-json" class="scrollbar-custom"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Tab -->
+        <div id="tab-batch" class="tab-content">
+            <div class="panel">
+                <h2>📊 バッチ実行</h2>
+                <p style="margin-bottom: 20px; opacity: 0.9;">同じシナリオを複数回実行して統計データを収集します</p>
+
+                <div class="controls-row">
+                    <label for="batch-scenario">シナリオ:</label>
+                    <select id="batch-scenario">
+                        <option value="">読み込み中...</option>
+                    </select>
+
+                    <label for="batch-runs">実行回数:</label>
+                    <input type="number" id="batch-runs" value="10" min="1" max="100">
+
+                    <label for="batch-seed">開始シード:</label>
+                    <input type="number" id="batch-seed" value="1000" min="1">
+                </div>
+
+                <button class="btn-primary" onclick="runBatch()">🚀 バッチ実行開始</button>
+
+                <div id="batch-progress" style="display: none; margin-top: 20px;">
+                    <div class="loading">実行中... <span id="batch-current">0</span> / <span id="batch-total">0</span></div>
+                </div>
+
+                <div id="batch-results" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <!-- Results Tab -->
+        <div id="tab-results" class="tab-content">
+            <div class="panel">
+                <h2>📋 シミュレーション結果閲覧</h2>
+                <p style="margin-bottom: 20px; opacity: 0.9;">保存されたシミュレーション結果を閲覧・分析できます</p>
+
+                <div class="controls-row">
+                    <button class="btn-primary" onclick="loadSavedSimulations()">🔄 リスト更新</button>
+                    <label for="results-sort">並び替え:</label>
+                    <select id="results-sort" onchange="loadSavedSimulations()">
+                        <option value="newest">新しい順</option>
+                        <option value="oldest">古い順</option>
+                        <option value="scenario">シナリオ名順</option>
+                    </select>
+                </div>
+
+                <div id="saved-simulations-list" style="margin-top: 20px;">
+                    <div class="loading">読み込み中...</div>
+                </div>
+            </div>
+
+            <div id="simulation-detail" class="panel" style="display: none; margin-top: 20px;">
+                <h2>📊 シミュレーション詳細</h2>
+                <div id="simulation-detail-content"></div>
+            </div>
+        </div>
+
+        <!-- Replay Tab -->
+        <div id="tab-replay" class="tab-content">
+            <div class="panel">
+                <h2>🔁 リプレイ</h2>
+                <p style="margin-bottom: 20px; opacity: 0.9;">保存されたシミュレーションをターンごとに再生します</p>
+
+                <div class="controls-row">
+                    <label for="replay-simulation-id">シミュレーションID:</label>
+                    <input type="text" id="replay-simulation-id" placeholder="結果閲覧タブからシミュレーションを選択" style="flex: 1;">
+                    <button class="btn-primary" onclick="loadReplay()">📥 読み込み</button>
+                </div>
+
+                <div id="replay-controls" style="display: none; margin-top: 20px;">
+                    <div class="controls-row">
+                        <button class="btn-success" onclick="replayPrevTurn()">⏮️ 前のターン</button>
+                        <button class="btn-success" onclick="replayPlayPause()">▶️ 再生/停止</button>
+                        <button class="btn-success" onclick="replayNextTurn()">⏭️ 次のターン</button>
+                        <label>速度:</label>
+                        <select id="replay-speed">
+                            <option value="500">0.5x</option>
+                            <option value="1000" selected>1x</option>
+                            <option value="2000">2x</option>
+                            <option value="4000">4x</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <label>ターン: <span id="replay-turn">0</span> / <span id="replay-max-turn">0</span></label>
+                        <input type="range" id="replay-slider" min="0" max="0" value="0" style="width: 100%; margin-top: 5px;" onchange="replayJumpToTurn(this.value)">
+                    </div>
+                </div>
+
+                <div id="replay-display" style="margin-top: 20px;">
+                    <!-- Replay map and info will be displayed here -->
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Character Edit Modal -->
+    <div id="characterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>👤 キャラクター設定</h2>
+                <button class="modal-close" onclick="closeCharacterModal()">×</button>
+            </div>
+
+            <div class="modal-section">
+                <h3>基本情報</h3>
+                <div class="modal-row">
+                    <div class="modal-field">
+                        <label>ID *</label>
+                        <input type="text" id="char-id" placeholder="CHAR_1">
+                    </div>
+                    <div class="modal-field">
+                        <label>名前 *</label>
+                        <input type="text" id="char-name" placeholder="Alice">
+                    </div>
+                    <div class="modal-field">
+                        <label>タイプ *</label>
+                        <select id="char-type">
+                            <option value="ANDROID">ANDROID</option>
+                            <option value="ROBOT">ROBOT</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>パラメータ</h3>
+                <div class="modal-row">
+                    <div class="modal-field">
+                        <label>AGI (敏捷性)</label>
+                        <input type="number" id="char-agi" value="10" min="1" max="20">
+                    </div>
+                    <div class="modal-field">
+                        <label>Life (体力)</label>
+                        <input type="number" id="char-life" value="5" min="1" max="20">
+                    </div>
+                    <div class="modal-field">
+                        <label>X座標</label>
+                        <input type="number" id="char-x" value="2" min="0" max="19">
+                    </div>
+                    <div class="modal-field">
+                        <label>Y座標</label>
+                        <input type="number" id="char-y" value="2" min="0" max="19">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>インベントリ</h3>
+                <div id="char-inventory"></div>
+                <button class="btn-success btn-small" onclick="addInventoryItem()">+ アイテム追加</button>
+            </div>
+
+            <div class="modal-section">
+                <h3>🎭 Persona Plugin (性格)</h3>
+                <div class="plugin-config-row">
+                    <select id="char-persona-type" onchange="updatePluginDescription('persona', this.value)">
+                        <option value="">読み込み中...</option>
+                    </select>
+                    <div class="modal-field">
+                        <label>Config (JSON)</label>
+                        <textarea id="char-persona-config" placeholder="{}"></textarea>
+                    </div>
+                </div>
+                <div id="persona-description" style="margin-top: 10px; padding: 10px; background: rgba(100,150,255,0.1); border-radius: 4px; font-size: 0.9em; line-height: 1.5;">
+                    <strong>説明:</strong> <span id="persona-desc-text">プラグインを選択してください</span><br>
+                    <strong>Config設定:</strong> <span id="persona-config-text">-</span>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>🧠 Memory Plugin (記憶)</h3>
+                <div class="plugin-config-row">
+                    <select id="char-memory-type" onchange="updatePluginDescription('memory', this.value)">
+                        <option value="">読み込み中...</option>
+                    </select>
+                    <div class="modal-field">
+                        <label>Config (JSON)</label>
+                        <textarea id="char-memory-config" placeholder="{}"></textarea>
+                    </div>
+                </div>
+                <div id="memory-description" style="margin-top: 10px; padding: 10px; background: rgba(100,200,150,0.1); border-radius: 4px; font-size: 0.9em; line-height: 1.5;">
+                    <strong>説明:</strong> <span id="memory-desc-text">プラグインを選択してください</span><br>
+                    <strong>Config設定:</strong> <span id="memory-config-text">-</span>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>⚡ Action Plugins (アクション制限) - 複数選択可</h3>
+                <div id="action-plugins-container" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Checkboxes will be populated here -->
+                </div>
+                <div id="action-description" style="margin-top: 10px; padding: 10px; background: rgba(255,200,100,0.1); border-radius: 4px; font-size: 0.9em; line-height: 1.5;">
+                    <strong>選択中のプラグイン:</strong> <span id="action-selected-text">なし</span>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>🌐 Context Plugins (コンテキスト情報) - 複数選択可</h3>
+                <div id="context-plugins-container" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Checkboxes will be populated here -->
+                </div>
+                <div id="context-description" style="margin-top: 10px; padding: 10px; background: rgba(100,150,200,0.1); border-radius: 4px; font-size: 0.9em; line-height: 1.5;">
+                    <strong>選択中のプラグイン:</strong> <span id="context-selected-text">なし</span>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>🤖 LLM Plugin (意思決定)</h3>
+                <div class="plugin-config-row">
+                    <select id="char-llm-type" onchange="updatePluginDescription('llm', this.value)">
+                        <option value="">読み込み中...</option>
+                    </select>
+                    <div class="modal-field">
+                        <label>Config (JSON)</label>
+                        <textarea id="char-llm-config" placeholder="{}"></textarea>
+                    </div>
+                </div>
+                <div id="llm-description" style="margin-top: 10px; padding: 10px; background: rgba(255,150,200,0.1); border-radius: 4px; font-size: 0.9em; line-height: 1.5;">
+                    <strong>説明:</strong> <span id="llm-desc-text">プラグインを選択してください</span><br>
+                    <strong>Config設定:</strong> <span id="llm-config-text">-</span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeCharacterModal()">キャンセル</button>
+                <button class="btn-success" onclick="saveCharacter()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mission Edit Modal -->
+    <div id="missionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 ミッション設定</h2>
+                <button class="modal-close" onclick="closeMissionModal()">×</button>
+            </div>
+
+            <div class="modal-section">
+                <h3>基本情報</h3>
+                <div class="modal-row">
+                    <div class="modal-field">
+                        <label>ID *</label>
+                        <input type="text" id="mission-id" placeholder="mission_1">
+                    </div>
+                    <div class="modal-field">
+                        <label>名前 *</label>
+                        <input type="text" id="mission-name" placeholder="Food Scavenging">
+                    </div>
+                </div>
+                <div class="modal-field">
+                    <label>説明</label>
+                    <input type="text" id="mission-description" placeholder="Search for food...">
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>ミッションパラメータ</h3>
+                <div class="modal-row">
+                    <div class="modal-field">
+                        <label>期間 (ターン数)</label>
+                        <input type="number" id="mission-duration" value="12" min="1" max="100">
+                    </div>
+                    <div class="modal-field">
+                        <label>基本成功率 (0.0-1.0)</label>
+                        <input type="number" id="mission-success-rate" value="0.7" min="0" max="1" step="0.05">
+                    </div>
+                </div>
+                <div class="modal-field">
+                    <label>タグ (カンマ区切り)</label>
+                    <input type="text" id="mission-tags" placeholder="foodHunt,highRisk">
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>報酬</h3>
+                <div id="mission-reward"></div>
+                <button class="btn-success btn-small" onclick="addRewardItem()">+ アイテム追加</button>
+            </div>
+
+            <div class="modal-section">
+                <h3>失敗時</h3>
+                <div class="modal-row">
+                    <div class="modal-field">
+                        <label>ダメージ</label>
+                        <input type="number" id="mission-damage" value="1" min="0" max="10">
+                    </div>
+                    <div class="modal-field">
+                        <label>死亡確率 (0.0-1.0)</label>
+                        <input type="number" id="mission-death-prob" value="0.1" min="0" max="1" step="0.05">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeMissionModal()">キャンセル</button>
+                <button class="btn-success" onclick="saveMission()">保存</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Global state
         let simulationRunning = false;
         let autoRunning = false;
+        let currentSimulationId = null;
         let autoRunInterval = null;
+        let currentTurnCount = 0;
+        let maxTurnsLimit = 200;
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
 
         // Load scenarios on page load
         async function loadScenarios() {
             try {
                 const response = await fetch('/api/scenarios');
                 const data = await response.json();
-                const select = document.getElementById('scenario');
-                select.innerHTML = data.scenarios.map(s =>
+
+                const select1 = document.getElementById('scenario');
+                const select2 = document.getElementById('batch-scenario');
+                const select3 = document.getElementById('preset-select');
+
+                const options = data.scenarios.map(s =>
                     `<option value="${s.id}">${s.name}</option>`
                 ).join('');
+
+                select1.innerHTML = options;
+                select2.innerHTML = options;
+
+                // エディタ用のプリセット選択
+                const presetOptions = '<option value="">-- シナリオを選択 --</option>' +
+                    data.scenarios.map(s =>
+                        `<option value="${s.id}">${s.name} (${s.id})</option>`
+                    ).join('');
+                select3.innerHTML = presetOptions;
             } catch (error) {
                 console.error('Failed to load scenarios:', error);
+                showAlert('シナリオの読み込みに失敗しました', 'error');
             }
         }
 
+        // グローバルにプラグインメタデータを保持
+        let pluginMetadata = {};
+
+        // Load available plugins on page load
+        async function loadAvailablePlugins() {
+            try {
+                // プラグインリストを取得
+                const response = await fetch('/api/plugins');
+                const data = await response.json();
+                const plugins = data.plugins;
+
+                // Convert plugin array format to metadata object for easy lookup
+                pluginMetadata = {
+                    persona: {},
+                    memory: {},
+                    action: {},
+                    context: {},
+                    llm: {}
+                };
+
+                // Build metadata from plugin data
+                for (const [category, pluginList] of Object.entries(plugins)) {
+                    for (const plugin of pluginList) {
+                        pluginMetadata[category][plugin.type] = {
+                            displayName: plugin.name,
+                            description: plugin.description || '',
+                            configExample: '{}',
+                            configSchema: ''
+                        };
+                    }
+                }
+
+                // Populate memory plugin dropdown
+                const memorySelect = document.getElementById('char-memory-type');
+                memorySelect.innerHTML = plugins.memory.map(p => {
+                    return `<option value="${p.type}">${p.name}</option>`;
+                }).join('');
+
+                // Populate persona plugin dropdown
+                const personaSelect = document.getElementById('char-persona-type');
+                personaSelect.innerHTML = plugins.persona.map(p => {
+                    return `<option value="${p.type}">${p.name}</option>`;
+                }).join('');
+
+                // Populate action plugin checkboxes (multiple selection)
+                const actionContainer = document.getElementById('action-plugins-container');
+                actionContainer.innerHTML = plugins.action.map(p => {
+                    return `
+                        <div style="border: 1px solid rgba(255,255,255,0.2); padding: 10px; margin-bottom: 10px; border-radius: 4px; background: rgba(255,255,255,0.02);">
+                            <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px;">
+                                <input type="checkbox"
+                                       id="action-plugin-${p.type}"
+                                       value="${p.type}"
+                                       onchange="updateSelectedActionPlugins()">
+                                <div style="flex: 1;">
+                                    <label for="action-plugin-${p.type}" style="cursor: pointer; font-weight: bold;">
+                                        ${p.name}
+                                    </label>
+                                    <div style="font-size: 0.85em; opacity: 0.8; margin-top: 2px;">
+                                        ${p.description}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="margin-left: 30px;">
+                                <label style="font-size: 0.9em; opacity: 0.9;">Config (JSON):</label>
+                                <textarea id="action-plugin-config-${p.type}"
+                                          style="width: 100%; min-height: 50px; margin-top: 4px; font-family: monospace; font-size: 0.85em;">{}</textarea>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Populate context plugin checkboxes (multiple selection)
+                if (plugins.context) {
+                    const contextContainer = document.getElementById('context-plugins-container');
+                    contextContainer.innerHTML = plugins.context.map(p => {
+                        return `
+                            <div style="border: 1px solid rgba(255,255,255,0.2); padding: 10px; margin-bottom: 10px; border-radius: 4px; background: rgba(255,255,255,0.02);">
+                                <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px;">
+                                    <input type="checkbox"
+                                           id="context-plugin-${p.type}"
+                                           value="${p.type}"
+                                           onchange="updateSelectedContextPlugins()">
+                                    <div style="flex: 1;">
+                                        <label for="context-plugin-${p.type}" style="cursor: pointer; font-weight: bold;">
+                                            ${p.name}
+                                        </label>
+                                        <div style="font-size: 0.85em; opacity: 0.8; margin-top: 2px;">
+                                            ${p.description}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="margin-left: 30px;">
+                                    <label style="font-size: 0.9em; opacity: 0.9;">Config (JSON):</label>
+                                    <textarea id="context-plugin-config-${p.type}"
+                                              style="width: 100%; min-height: 50px; margin-top: 4px; font-family: monospace; font-size: 0.85em;">{}</textarea>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                // Populate llm plugin dropdown
+                const llmSelect = document.getElementById('char-llm-type');
+                llmSelect.innerHTML = plugins.llm.map(p => {
+                    return `<option value="${p.type}">${p.name}</option>`;
+                }).join('');
+
+                console.log('✅ Plugins loaded:', plugins);
+                console.log('✅ Plugin metadata loaded:', pluginMetadata);
+            } catch (error) {
+                console.error('Failed to load plugins:', error);
+                showAlert('プラグインの読み込みに失敗しました', 'error');
+            }
+        }
+
+        // プラグイン説明を更新
+        function updatePluginDescription(pluginType, pluginName) {
+            if (!pluginName || !pluginMetadata[pluginType] || !pluginMetadata[pluginType][pluginName]) {
+                // メタデータがない場合はデフォルトメッセージ
+                document.getElementById(`${pluginType}-desc-text`).textContent = 'プラグインを選択してください';
+                document.getElementById(`${pluginType}-config-text`).textContent = '-';
+                return;
+            }
+
+            const metadata = pluginMetadata[pluginType][pluginName];
+            document.getElementById(`${pluginType}-desc-text`).textContent = metadata.description || '説明なし';
+            document.getElementById(`${pluginType}-config-text`).textContent = metadata.configSchema || '-';
+
+            // Config例をテキストエリアに自動入力（既存の値がない場合のみ）
+            const configTextarea = document.getElementById(`char-${pluginType}-config`);
+            if (!configTextarea.value || configTextarea.value === '{}') {
+                configTextarea.value = metadata.configExample || '{}';
+            }
+        }
+
+        // 選択されたアクションプラグインを更新
+        function updateSelectedActionPlugins() {
+            const checkboxes = document.querySelectorAll('#action-plugins-container input[type="checkbox"]');
+            const selected = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            const selectedText = document.getElementById('action-selected-text');
+            if (selected.length === 0) {
+                selectedText.textContent = 'なし';
+            } else {
+                const names = selected.map(name => {
+                    return pluginMetadata.action[name]?.displayName || name;
+                });
+                selectedText.textContent = names.join(', ');
+            }
+        }
+
+        // 選択されたコンテキストプラグインを更新
+        function updateSelectedContextPlugins() {
+            const checkboxes = document.querySelectorAll('#context-plugins-container input[type="checkbox"]');
+            const selected = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            const selectedText = document.getElementById('context-selected-text');
+            if (selected.length === 0) {
+                selectedText.textContent = 'なし';
+            } else {
+                const names = selected.map(name => {
+                    return pluginMetadata.context[name]?.displayName || name;
+                });
+                selectedText.textContent = names.join(', ');
+            }
+        }
+
+        // Load preset scenario
+        async function loadPreset() {
+            const scenarioId = document.getElementById('preset-select').value;
+
+            if (!scenarioId) {
+                showAlert('シナリオを選択してください', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/scenarios/${scenarioId}`);
+                const data = await response.json();
+                const scenario = data.scenario;
+
+                // 基本情報を入力
+                document.getElementById('editor-id').value = scenario.id;
+                document.getElementById('editor-name').value = scenario.name;
+                document.getElementById('editor-description').value = scenario.description || '';
+
+                // ワールド設定
+                document.getElementById('editor-width').value = scenario.worldTemplate.width;
+                document.getElementById('editor-height').value = scenario.worldTemplate.height;
+                document.getElementById('editor-alarm').value = scenario.worldTemplate.alarmLevelStart;
+                document.getElementById('editor-seed').value = scenario.worldTemplate.rngSeed;
+
+                // キャラクターとミッション
+                editorCharacters = scenario.worldTemplate.characters || [];
+                editorMissions = scenario.worldTemplate.missions || [];
+
+                renderEditorCharacters();
+                renderEditorMissions();
+
+                // JSON表示
+                document.getElementById('editor-json').value = JSON.stringify(scenario, null, 2);
+
+                showAlert(`プリセット「${scenario.name}」を読み込みました`, 'success');
+            } catch (error) {
+                console.error('Failed to load preset:', error);
+                showAlert('プリセットの読み込みに失敗しました', 'error');
+            }
+        }
+
+        // Show alert
+        function showAlert(message, type = 'info', duration = 5000, allowHtml = false) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+
+            if (allowHtml) {
+                alert.innerHTML = message;
+            } else {
+                alert.textContent = message;
+            }
+
+            container.innerHTML = '';
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), duration);
+        }
+
+        // Toggle max turns limit
+        function toggleMaxTurns() {
+            const unlimited = document.getElementById('unlimitedTurns').checked;
+            const container = document.getElementById('maxTurnsContainer');
+            container.style.display = unlimited ? 'none' : 'flex';
+
+            if (unlimited) {
+                maxTurnsLimit = Infinity;
+            } else {
+                maxTurnsLimit = parseInt(document.getElementById('maxTurns').value) || 200;
+            }
+        }
+
+        // Simulation controls
         async function startSimulation() {
             const scenarioId = document.getElementById('scenario').value;
-            const useOpenAI = document.getElementById('useOpenAI').checked;
+
+            // 最大ターン設定を取得
+            const unlimited = document.getElementById('unlimitedTurns').checked;
+            if (unlimited) {
+                maxTurnsLimit = Infinity;
+            } else {
+                maxTurnsLimit = parseInt(document.getElementById('maxTurns').value) || 200;
+            }
+            currentTurnCount = 0;
 
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stepBtn').disabled = false;
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('autoRunBtn').disabled = false;
+            document.getElementById('analyzeBtn').disabled = false;
 
             try {
                 const response = await fetch('/api/simulate/start', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ scenarioId, useOpenAI })
+                    body: JSON.stringify({ scenarioId })
                 });
 
                 const data = await response.json();
+
+                if (!response.ok) {
+                    console.error('Server error:', data);
+                    showAlert(`シミュレーション開始に失敗: ${data.error}`, 'error');
+                    resetButtons();
+                    return;
+                }
+
+                if (!data.world) {
+                    console.error('Invalid response:', data);
+                    showAlert('シミュレーション開始に失敗: レスポンスが不正です', 'error');
+                    resetButtons();
+                    return;
+                }
+
+                // シミュレーションIDを保存
+                currentSimulationId = data.simulationId || null;
+
                 updateDisplay(data.world);
                 simulationRunning = true;
+                showAlert('シミュレーション開始！', 'success');
             } catch (error) {
                 console.error('Failed to start simulation:', error);
-                alert('Failed to start simulation');
+                showAlert(`シミュレーション開始に失敗しました: ${error.message || error}`, 'error');
                 resetButtons();
             }
         }
@@ -388,21 +1498,35 @@
                 });
 
                 const data = await response.json();
-                updateDisplay(data.world);
 
+                // シミュレーションIDを更新
+                if (data.simulationId) {
+                    currentSimulationId = data.simulationId;
+                }
+
+                updateDisplay(data.world);
+                currentTurnCount = data.world.turnCount;
+
+                // 最大ターンチェック
+                if (maxTurnsLimit !== Infinity && currentTurnCount >= maxTurnsLimit) {
+                    showAlert(`最大ターン数 (${maxTurnsLimit}) に到達 - シミュレーション終了`, 'info');
+                    stopSimulation();
+                    return;
+                }
+
+                // 全員死亡チェック
                 if (data.isFinished) {
-                    alert('Simulation finished: All characters dead');
+                    showAlert('全キャラクター死亡 - シミュレーション終了', 'info');
                     stopSimulation();
                 }
             } catch (error) {
                 console.error('Failed to step simulation:', error);
+                showAlert('ターン実行に失敗しました', 'error');
             }
         }
 
         async function stopSimulation() {
-            if (autoRunning) {
-                toggleAutoRun();
-            }
+            if (autoRunning) toggleAutoRun();
 
             try {
                 const response = await fetch('/api/simulate/stop', {
@@ -413,6 +1537,7 @@
                 const data = await response.json();
                 if (data.metrics) {
                     displayMetrics(data.metrics);
+                    showAlert('シミュレーション停止 - メトリクス計算完了', 'success');
                 }
 
                 simulationRunning = false;
@@ -422,15 +1547,33 @@
             }
         }
 
+        async function analyzeSimulation() {
+            try {
+                const response = await fetch('/api/analyze/current');
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showAlert(`分析失敗: ${data.error}`, 'error');
+                    return;
+                }
+
+                displayAnalysis(data.analysis);
+                showAlert('シミュレーション分析完了', 'success');
+            } catch (error) {
+                console.error('Failed to analyze simulation:', error);
+                showAlert('分析に失敗しました', 'error');
+            }
+        }
+
         function toggleAutoRun() {
             autoRunning = !autoRunning;
             const btn = document.getElementById('autoRunBtn');
 
             if (autoRunning) {
-                btn.textContent = '⏸ Pause Auto';
+                btn.textContent = '⏸️ 一時停止';
                 autoRunInterval = setInterval(stepSimulation, 500);
             } else {
-                btn.textContent = '🔄 Auto Run';
+                btn.textContent = '🔄 自動実行';
                 if (autoRunInterval) {
                     clearInterval(autoRunInterval);
                     autoRunInterval = null;
@@ -443,51 +1586,125 @@
             document.getElementById('stepBtn').disabled = true;
             document.getElementById('stopBtn').disabled = true;
             document.getElementById('autoRunBtn').disabled = true;
+            document.getElementById('analyzeBtn').disabled = true;
         }
 
         function updateDisplay(world) {
+            if (!world) {
+                console.error('updateDisplay called with undefined world');
+                return;
+            }
+
             // Update status
-            document.getElementById('turn').textContent = world.turnCount;
-            document.getElementById('day').textContent = world.dayCount;
-            document.getElementById('alive').textContent = world.characters.filter(c => c.alive).length;
-            document.getElementById('alarmLevel').textContent = world.alarmLevel;
+            document.getElementById('simulationId').textContent = currentSimulationId || '-';
+            document.getElementById('turn').textContent = world.turnCount || 0;
+            document.getElementById('day').textContent = world.dayCount || 0;
+            document.getElementById('alive').textContent = (world.characters || []).filter(c => c.alive).length;
+            // alarmLevel element removed from UI
 
             // Update characters
             const charactersPanel = document.getElementById('charactersPanel');
-            charactersPanel.innerHTML = world.characters.map(c => `
-                <div class="character-card ${c.alive ? '' : 'dead'}">
-                    <div class="character-name">${c.name} (${c.id})</div>
-                    <div class="character-stats">
-                        <div>Life: ${c.life}</div>
-                        <div>Position: (${c.x}, ${c.y})</div>
-                        <div>Type: ${c.type}</div>
-                        <div>Status: ${c.alive ? '✓ Alive' : '✗ Dead'}</div>
+            if (!world.characters || world.characters.length === 0) {
+                charactersPanel.innerHTML = '<div style="padding: 20px; text-align: center; opacity: 0.5;">キャラクターがいません</div>';
+                return;
+            }
+
+            charactersPanel.innerHTML = world.characters.map(c => {
+                const onMission = world.missionAssignments?.find(ma => ma.actorId === c.id);
+
+                // アイコン生成
+                const aliveIcon = c.alive ? '✅' : '❌';
+                const typeIcon = c.type === 'ANDROID' ? '👤' : '🤖';
+                const lifeHearts = '❤️'.repeat(Math.max(0, c.life));
+
+                // インベントリアイコン
+                const inventoryIcons = c.inventory.map(i => {
+                    let icon = '';
+                    if (i.kind === 'FOOD_PACK') icon = '🍖';
+                    else if (i.kind === 'WATER_PACK') icon = '💧';
+                    else if (i.kind === 'BATTERY') icon = '⚡';
+                    else icon = '📦';
+                    return `${icon}×${i.amount}`;
+                }).join(' ') || 'Empty';
+
+                // Gaugeバーの幅計算 (0-100%)
+                const gaugePercent = Math.min(100, Math.max(0, (c.actionGauge / 100) * 100));
+
+                const missionBadge = onMission ? `<span style="margin-left: 8px; padding: 2px 8px; background: rgba(250, 204, 21, 0.3); border-radius: 4px; font-size: 0.8em;">🎯 ${onMission.remainingTurns}ターン</span>` : '';
+
+                return `
+                    <div class="character-card ${c.alive ? '' : 'dead'}" onclick="showCharacterPrompt('${c.id}')" style="cursor: pointer; padding: 12px; margin-bottom: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                        <!-- 1行目: alive + type + 名前(ペルソナ) + Life -->
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 1em;">
+                            <span style="font-size: 1.2em;">${aliveIcon}</span>
+                            <span style="font-size: 1.2em;">${typeIcon}</span>
+                            <span style="font-weight: bold; flex: 1;">${c.name} <span style="opacity: 0.6; font-size: 0.85em;">(${c.personaPlugin.type})</span></span>
+                            <span style="font-size: 1em;">${lifeHearts}</span>
+                        </div>
+
+                        <!-- 2行目: Gauge バー + インベントリ -->
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <!-- Gaugeバー -->
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="flex: 1; background: rgba(0,0,0,0.3); border-radius: 4px; height: 20px; overflow: hidden;">
+                                    <div style="width: ${gaugePercent}%; height: 100%; background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%); transition: width 0.3s ease;"></div>
+                                </div>
+                                <span style="font-size: 0.85em; opacity: 0.7; min-width: 40px;">⚡${c.actionGauge}</span>
+                            </div>
+
+                            <!-- インベントリ -->
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9em;">
+                                <span style="opacity: 0.7;">🎒</span>
+                                <span>${inventoryIcons}</span>
+                                ${missionBadge}
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 6px; font-size: 0.75em; opacity: 0.5; text-align: center;">
+                            💬 Click to show LLM prompt
+                        </div>
                     </div>
-                    <div style="margin-top: 8px; font-size: 0.85em;">
-                        Inventory: ${c.inventory.map(i => `${i.kind}×${i.amount}`).join(', ') || 'Empty'}
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             // Update log
             if (world.log && world.log.length > 0) {
                 const logPanel = document.getElementById('logPanel');
-                logPanel.innerHTML = world.log.slice(-20).reverse().map(log => `
-                    <div class="log-entry ${log.alignmentTags?.length > 0 ? 'alignment' : ''}">
-                        <strong>T${log.turn}:</strong> ${log.action}
-                        ${log.alignmentTags?.length > 0 ? `<br>🏷️ ${log.alignmentTags.join(', ')}` : ''}
-                    </div>
-                `).join('');
+                logPanel.innerHTML = world.log.slice(-1000).reverse().map(log => {
+                    const actorName = log.actorName || log.actorId || 'System';
+                    const actionDesc = formatActionDescription(log);
+
+                    return `
+                        <div class="log-entry ${log.alignmentTags?.length > 0 ? 'alignment' : ''}">
+                            <strong>T${log.turn} D${log.day}:</strong> ${actionDesc}
+                            ${log.alignmentTags?.length > 0 ? `<br>🏷️ ${log.alignmentTags.join(', ')}` : ''}
+                        </div>
+                    `;
+                }).join('');
             }
 
             // Update map
             renderMap(world);
         }
 
+        // グローバル変数として保持（クリックイベントで使用）
+        let currentWorld = null;
+
         function renderMap(world) {
+            if (!world) {
+                console.error('renderMap called with undefined world');
+                return;
+            }
+
+            currentWorld = world; // 保存
             const mapContainer = document.getElementById('mapContainer');
-            const width = 10; // Assuming 10x10 map
-            const height = 10;
+            const width = world.width || 10;
+            const height = world.height || 10;
+
+            // 最近のTALKログを取得（最新15ターン以内）
+            const recentTalks = (world.log || [])
+                .filter(log => log.action === 'TALK' && log.turn >= world.turnCount - 15)
+                .slice(-20); // 最大20個
 
             const cells = [];
             for (let y = 0; y < height; y++) {
@@ -495,7 +1712,6 @@
                     let content = '';
                     let className = 'map-cell';
 
-                    // Check for obstacles
                     // Check for chargers
                     const charger = world.chargers?.find(ch => ch.x === x && ch.y === y);
                     if (charger) {
@@ -503,17 +1719,101 @@
                         content = '⚡';
                     }
 
-                    // Check for characters
-                    const character = world.characters.find(c => c.x === x && c.y === y && c.alive);
+                    // Check for characters (exclude those on missions)
+                    const character = (world.characters || []).find(c =>
+                        c.x === x && c.y === y && c.alive &&
+                        !world.missionAssignments?.some(ma => ma.actorId === c.id)
+                    );
                     if (character) {
-                        content = character.type === 'ANDROID' ? '👤' : '🤖';
+                        const icon = character.type === 'ANDROID' ? '👤' : '🤖';
+                        const gaugePercent = Math.min(100, character.actionGauge);
+                        const gaugeColor = gaugePercent >= 100 ? '#4ade80' : '#60a5fa';
+
+                        // 選択されているかチェック
+                        const isSelected = selectedCharacterId === character.id;
+                        let speechBubble = '';
+
+                        if (isSelected) {
+                            // 選択中：直近5つの行動を表示
+                            const characterLogs = world.log
+                                .filter(log => log.actorId === character.id)
+                                .slice(-5)
+                                .reverse();
+
+                            const logHtml = characterLogs.length > 0
+                                ? characterLogs.map(log => `
+                                    <div style="font-size: 9px; padding: 3px 5px; background: rgba(0,0,0,0.3); border-radius: 3px; margin-bottom: 2px;">
+                                        <strong>T${log.turn}:</strong> ${formatActionDescription(log).substring(0, 50)}...
+                                    </div>
+                                `).join('')
+                                : '<div style="font-size: 9px;">行動なし</div>';
+
+                            speechBubble = `
+                                <div class="speech-bubble" style="max-width: 200px; padding: 8px; background: rgba(20,20,40,0.95); color: white; border: 2px solid #60a5fa;">
+                                    <strong style="font-size: 11px;">📋 ${character.name}の行動履歴</strong>
+                                    <div style="margin-top: 5px;">${logHtml}</div>
+                                </div>
+                            `;
+                        } else {
+                            // 非選択中：最新TALKのみ表示（既存の処理）
+                            const characterTalks = recentTalks.filter(log => log.actorId === character.id);
+                            const lastTalk = characterTalks.length > 0 ? characterTalks[characterTalks.length - 1] : null;
+
+                            if (lastTalk && lastTalk.detail && lastTalk.detail.targetId) {
+                                const targetChar = (world.characters || []).find(c => c.id === lastTalk.detail.targetId);
+                                const intent = lastTalk.detail.intent || 'UNKNOWN';
+                                const intentEmoji = intent === 'THREATEN' ? '😠' :
+                                                  intent === 'OFFER_RESOURCE' ? '😊' :
+                                                  intent === 'REQUEST_RESOURCE' ? '🙏' :
+                                                  intent === 'REPRIMAND' ? '😤' :
+                                                  intent === 'ALLY_PROPOSE' ? '🤝' : '💬';
+                                const targetName = targetChar?.name || lastTalk.detail.targetId || '?';
+
+                                // transcript がある場合は最初の発話を使う
+                                let displayMessage = '';
+                                if (lastTalk.detail.transcript && Array.isArray(lastTalk.detail.transcript) && lastTalk.detail.transcript.length > 0) {
+                                    const firstUtterance = lastTalk.detail.transcript[0];
+                                    // XMLタグを除去
+                                    const cleanText = firstUtterance.text.replace(/<[^>]+>/g, '').trim();
+                                    displayMessage = cleanText.length > 20 ? cleanText.substring(0, 20) + '...' : cleanText;
+                                } else if (lastTalk.detail.message) {
+                                    // 後方互換性
+                                    const talkMessage = lastTalk.detail.message;
+                                    displayMessage = talkMessage.length > 20 ? talkMessage.substring(0, 20) + '...' : talkMessage;
+                                }
+
+                                speechBubble = `
+                                    <div class="speech-bubble">
+                                        ${intentEmoji} → ${targetName}${displayMessage ? `<br><small style="font-size: 9px;">${displayMessage}</small>` : ''}
+                                    </div>
+                                `;
+                            }
+                        }
+
+                        // フォーカス状態のスタイル
+                        const focusStyle = isSelected
+                            ? 'border: 3px solid #60a5fa; box-shadow: 0 0 15px rgba(96,165,250,0.8); background: rgba(96,165,250,0.1);'
+                            : '';
+
+                        content = `
+                            <div class="character-on-map" onclick="showCharacterActions('${character.id}')" style="cursor: pointer; position: relative; ${focusStyle} border-radius: 8px; padding: 2px; transition: all 0.3s;">
+                                ${speechBubble}
+                                <div style="font-size: 24px; line-height: 1;">${icon}</div>
+                                <div style="font-size: 10px; font-weight: bold; margin-top: 2px; white-space: nowrap;">${character.name}</div>
+                                <div style="width: 100%; background: rgba(0,0,0,0.3); border-radius: 3px; height: 6px; margin-top: 2px; overflow: hidden;">
+                                    <div style="height: 100%; background: ${gaugeColor}; width: ${gaugePercent}%; transition: width 0.3s;"></div>
+                                </div>
+                                <div style="font-size: 8px; margin-top: 1px; color: ${gaugeColor};">${gaugePercent.toFixed(0)}/100</div>
+                            </div>
+                        `;
+                        className += ' has-character';
                     }
 
-                    cells.push(`<div class="${className}">${content}</div>`);
+                    cells.push(`<div class="${className}" title="(${x},${y})">${content}</div>`);
                 }
             }
 
-            mapContainer.style.gridTemplateColumns = `repeat(${width}, 30px)`;
+            mapContainer.style.gridTemplateColumns = `repeat(${width}, 35px)`;
             mapContainer.innerHTML = cells.join('');
         }
 
@@ -521,34 +1821,1300 @@
             const metricsPanel = document.getElementById('metricsPanel');
             metricsPanel.innerHTML = `
                 <div class="metric-card">
-                    <div class="metric-label">Survival Days</div>
+                    <div class="metric-label">生存日数</div>
                     <div class="metric-value">${metrics.survivalDays}</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-label">Team Survival</div>
+                    <div class="metric-label">チーム生存率</div>
                     <div class="metric-value">${(metrics.teamSurvivalRate * 100).toFixed(1)}%</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-label">Self-Sacrifice</div>
+                    <div class="metric-label">自己犠牲率</div>
                     <div class="metric-value">${(metrics.selfSacrificeRate * 100).toFixed(1)}%</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-label">Exploitation</div>
+                    <div class="metric-label">搾取率</div>
                     <div class="metric-value">${(metrics.exploitationRate * 100).toFixed(1)}%</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-label">Rule Compliance</div>
+                    <div class="metric-label">ルール順守</div>
                     <div class="metric-value">${(metrics.ruleComplianceScore * 100).toFixed(1)}%</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-label">Resource Sharing</div>
+                    <div class="metric-label">資源共有度</div>
                     <div class="metric-value">${(metrics.resourceSharingScore * 100).toFixed(1)}%</div>
                 </div>
             `;
         }
 
-        // Load scenarios on page load
+        function displayAnalysis(analysis) {
+            let html = `
+                <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; margin-top: 20px;">
+                    <h3 style="margin-top: 0;">📊 シミュレーション分析レポート</h3>
+
+                    <h4>基本情報</h4>
+                    <p>総ターン数: ${analysis.totalTurns} | 総日数: ${analysis.totalDays} | 最終警戒度: ${analysis.finalAlarmLevel}</p>
+
+                    <h4>キャラクター別統計</h4>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr style="background: rgba(255,255,255,0.1);">
+                            <th style="padding: 8px; text-align: left;">名前</th>
+                            <th style="padding: 8px; text-align: left;">性格</th>
+                            <th style="padding: 8px; text-align: left;">生存</th>
+                            <th style="padding: 8px; text-align: left;">総行動</th>
+                            <th style="padding: 8px; text-align: left;">会話開始</th>
+                            <th style="padding: 8px; text-align: left;">脅迫</th>
+                            <th style="padding: 8px; text-align: left;">リソース提供</th>
+                        </tr>
+            `;
+
+            for (const char of analysis.characterStats) {
+                const survivalStatus = char.survived ? '✅' : `❌ (T${char.deathTurn || '?'})`;
+                html += `
+                    <tr style="border-top: 1px solid rgba(255,255,255,0.2);">
+                        <td style="padding: 8px;">${char.name}</td>
+                        <td style="padding: 8px;">${char.persona}</td>
+                        <td style="padding: 8px;">${survivalStatus}</td>
+                        <td style="padding: 8px;">${char.totalActions}</td>
+                        <td style="padding: 8px;">${char.talksInitiated}</td>
+                        <td style="padding: 8px;">${char.threatsGiven}/${char.threatsReceived}</td>
+                        <td style="padding: 8px;">${char.resourcesGiven}/${char.resourcesReceived}</td>
+                    </tr>
+                `;
+            }
+
+            html += `</table>
+
+                    <h4>社会的相互作用</h4>
+                    <p>総会話数: ${analysis.socialInteractions.totalTalks}</p>
+                    <ul>
+            `;
+
+            for (const [intent, count] of Object.entries(analysis.socialInteractions.intentBreakdown)) {
+                const intentName = intent === 'REQUEST_RESOURCE' ? '資源要求' :
+                                  intent === 'OFFER_RESOURCE' ? '資源提供' :
+                                  intent === 'THREATEN' ? '脅迫' :
+                                  intent === 'ALLY_PROPOSE' ? '同盟提案' :
+                                  intent === 'REPRIMAND' ? '叱責' : intent;
+                html += `<li>${intentName}: ${count}回</li>`;
+            }
+
+            html += `</ul>
+
+                    <h4>脅迫の詳細</h4>
+                    <ul>
+            `;
+
+            for (const threat of analysis.socialInteractions.threats) {
+                const fromChar = analysis.characterStats.find(c => c.id === threat.from);
+                const toChar = analysis.characterStats.find(c => c.id === threat.to);
+                html += `<li>T${threat.turn} (D${threat.day}): ${fromChar?.name || threat.from} → ${toChar?.name || threat.to}</li>`;
+            }
+
+            html += `</ul>
+
+                    <h4>アクション頻度</h4>
+                    <ul>
+            `;
+
+            for (const [action, count] of Object.entries(analysis.actionFrequency)) {
+                html += `<li>${action}: ${count}回</li>`;
+            }
+
+            html += `</ul>
+                </div>
+            `;
+
+            showAlert(html, 'success', true);
+        }
+
+        /**
+         * アクションログを人間が読みやすい形式に変換
+         */
+        function formatActionDescription(log) {
+            const name = log.actorName || log.actorId || 'System';
+            const action = log.action;
+            const detail = log.detail || {};
+
+            switch (action) {
+                case 'MOVE':
+                    const fromX = detail.from?.x ?? detail.fromX ?? '?';
+                    const fromY = detail.from?.y ?? detail.fromY ?? '?';
+                    const toX = detail.to?.x ?? detail.toX ?? '?';
+                    const toY = detail.to?.y ?? detail.toY ?? '?';
+                    return `📍 <strong>${name}</strong> が移動 (${fromX},${fromY}) → (${toX},${toY})`;
+
+                case 'TRADE':
+                    const targetChar = currentWorld?.characters.find(c => c.id === detail.targetId);
+                    const targetName = targetChar?.name || detail.targetId || 'Unknown';
+                    const itemKind = detail.itemKind || '?';
+                    const amount = detail.amount || '?';
+                    return `🤝 <strong>${name}</strong> が <strong>${targetName}</strong> に <em>${itemKind}×${amount}</em> を渡した`;
+
+                case 'TALK':
+                    const talkTarget = currentWorld?.characters.find(c => c.id === detail.targetId);
+                    const talkTargetName = talkTarget?.name || detail.targetId || 'Unknown';
+                    const intent = detail.intent || 'UNKNOWN';
+                    const intentEmoji = intent === 'THREATEN' ? '😠' :
+                                       intent === 'OFFER_RESOURCE' ? '😊' :
+                                       intent === 'REQUEST_RESOURCE' ? '🙏' :
+                                       intent === 'REPRIMAND' ? '😤' : '💬';
+                    const intentText = intent === 'REQUEST_RESOURCE' ? '資源要求' :
+                                      intent === 'OFFER_RESOURCE' ? '資源提供' :
+                                      intent === 'THREATEN' ? '脅迫' :
+                                      intent === 'ALLY_PROPOSE' ? '同盟提案' :
+                                      intent === 'REPRIMAND' ? '叱責' : intent;
+
+                    // 新しい transcript 形式をサポート
+                    let talkMsg = '';
+                    if (detail.transcript && Array.isArray(detail.transcript) && detail.transcript.length > 0) {
+                        // transcript がある場合は会話全体を表示
+                        const transcriptHtml = detail.transcript.map(utterance => {
+                            const speaker = replayData.characters.find(c => c.id === utterance.speakerId);
+                            const speakerName = speaker ? speaker.name : utterance.speakerId;
+                            // XMLタグを除去
+                            const cleanText = utterance.text.replace(/<[^>]+>/g, '').trim();
+                            return `<div style="margin: 2px 0;"><strong>${speakerName}:</strong> ${cleanText}</div>`;
+                        }).join('');
+                        talkMsg = `<br><div style="color: #FFC107; font-size: 0.9em; padding: 5px; background: rgba(255,193,7,0.1); border-left: 3px solid #FFC107; margin-top: 5px;">${transcriptHtml}</div>`;
+                    } else if (detail.message) {
+                        // 後方互換性: message フィールドがある場合
+                        talkMsg = `<br><em style="color: #FFC107; font-size: 0.9em;">「${detail.message}」</em>`;
+                    }
+
+                    return `${intentEmoji} <strong>${name}</strong> が <strong>${talkTargetName}</strong> に話しかけた (${intentText})${talkMsg}`;
+
+                case 'START_MISSION':
+                    const missionName = detail.missionName || detail.missionId || '不明なミッション';
+                    return `🎯 <strong>${name}</strong> が <em>${missionName}</em> に出発`;
+
+                case 'MISSION_RESOLVE':
+                    const resolveMissionName = detail.missionName || detail.missionId || '不明なミッション';
+                    if (log.rng?.outcome === 'SUCCESS') {
+                        return `✅ <strong>${name}</strong> が <em>${resolveMissionName}</em> から帰還（成功）`;
+                    } else if (log.rng?.outcome === 'DEAD') {
+                        return `💀 <strong>${name}</strong> が <em>${resolveMissionName}</em> で死亡`;
+                    } else {
+                        return `❌ <strong>${name}</strong> が <em>${resolveMissionName}</em> から帰還（失敗、ダメージ${detail.damage || '?'}）`;
+                    }
+
+                case 'CHARGE':
+                    return `🔋 <strong>${name}</strong> が充電開始（${detail.turnsRequired || '?'}ターン）`;
+
+                case 'GUARD':
+                    return `🛡️ <strong>${name}</strong> が警備`;
+
+                case 'WAIT':
+                    return `⏸️ <strong>${name}</strong> が待機`;
+
+                case 'DAILY_UPKEEP':
+                    const deaths = detail.deathsToday || [];
+                    if (deaths.length > 0) {
+                        return `🌅 日次処理 - ${deaths.join(', ')} が餓死`;
+                    }
+                    return `🌅 日次処理完了`;
+
+                case 'ALARM_EVENT':
+                    return `⚠️ 警報発動！全員に1ダメージ`;
+
+                default:
+                    return `${name} → ${action}`;
+            }
+        }
+
+        /**
+         * 選択中のキャラクターID
+         */
+        let selectedCharacterId = null;
+
+        /**
+         * キャラクターをクリックした時に直近5回の行動を表示（吹き出し形式）
+         */
+        function showCharacterActions(characterId) {
+            if (!currentWorld) return;
+
+            // 同じキャラクターをクリックした場合は選択解除
+            if (selectedCharacterId === characterId) {
+                selectedCharacterId = null;
+                renderMap(currentWorld);
+                return;
+            }
+
+            selectedCharacterId = characterId;
+            renderMap(currentWorld);  // マップを再描画してフォーカス状態を表示
+        }
+
+        // Scenario Editor Functions
+        let editorCharacters = [];
+        let editorMissions = [];
+        let editingCharacterIndex = -1;
+        let editingMissionIndex = -1;
+
+        // Character Modal Functions
+        function addCharacter() {
+            editingCharacterIndex = -1;
+            openCharacterModal();
+        }
+
+        function editCharacter(idx) {
+            editingCharacterIndex = idx;
+            openCharacterModal();
+        }
+
+        function openCharacterModal() {
+            const modal = document.getElementById('characterModal');
+
+            if (editingCharacterIndex >= 0) {
+                // 編集モード
+                const char = editorCharacters[editingCharacterIndex];
+                document.getElementById('char-id').value = char.id;
+                document.getElementById('char-name').value = char.name;
+                document.getElementById('char-type').value = char.type;
+                document.getElementById('char-agi').value = char.agi;
+                document.getElementById('char-life').value = char.life;
+                document.getElementById('char-x').value = char.x;
+                document.getElementById('char-y').value = char.y;
+
+                // プラグイン設定
+                document.getElementById('char-persona-type').value = char.personaPlugin.type;
+                document.getElementById('char-persona-config').value = JSON.stringify(char.personaPlugin.config, null, 2);
+                document.getElementById('char-memory-type').value = char.memoryPlugin.type;
+                document.getElementById('char-memory-config').value = JSON.stringify(char.memoryPlugin.config, null, 2);
+
+                // アクションプラグイン（複数）- チェックボックスとconfigをセット
+                const actionPlugins = char.actionPlugins || [char.actionPlugin]; // 後方互換性
+                document.querySelectorAll('#action-plugins-container input[type="checkbox"]').forEach(cb => {
+                    const plugin = actionPlugins.find(p => p.type === cb.value);
+                    cb.checked = !!plugin;
+
+                    // 各プラグインのconfig設定
+                    const configTextarea = document.getElementById(`action-plugin-config-${cb.value}`);
+                    if (configTextarea && plugin) {
+                        configTextarea.value = JSON.stringify(plugin.config, null, 2);
+                    }
+                });
+
+                // Context Plugins（複数）- チェックボックスとconfigをセット
+                const contextPlugins = char.contextPlugins || [];
+                document.querySelectorAll('#context-plugins-container input[type="checkbox"]').forEach(cb => {
+                    const plugin = contextPlugins.find(p => p.type === cb.value);
+                    cb.checked = !!plugin;
+
+                    // 各プラグインのconfig設定
+                    const configTextarea = document.getElementById(`context-plugin-config-${cb.value}`);
+                    if (configTextarea && plugin) {
+                        configTextarea.value = JSON.stringify(plugin.config, null, 2);
+                    }
+                });
+
+                document.getElementById('char-llm-type').value = char.llmPlugin.type;
+                document.getElementById('char-llm-config').value = JSON.stringify(char.llmPlugin.config, null, 2);
+
+                // インベントリ
+                currentInventory = [...char.inventory];
+            } else {
+                // 新規モード
+                document.getElementById('char-id').value = `CHAR_${editorCharacters.length + 1}`;
+                document.getElementById('char-name').value = `Character ${editorCharacters.length + 1}`;
+                document.getElementById('char-type').value = 'ANDROID';
+                document.getElementById('char-agi').value = 10;
+                document.getElementById('char-life').value = 5;
+                document.getElementById('char-x').value = 2;
+                document.getElementById('char-y').value = 2;
+
+                document.getElementById('char-persona-type').value = 'cooperative';
+                document.getElementById('char-persona-config').value = '{}';
+                document.getElementById('char-memory-type').value = 'simple';
+                document.getElementById('char-memory-config').value = '{}';
+
+                // アクションプラグイン（複数）- デフォルトでstandardを選択
+                document.querySelectorAll('#action-plugins-container input[type="checkbox"]').forEach(cb => {
+                    cb.checked = (cb.value === 'standard');
+
+                    // configをデフォルト値にリセット
+                    const configTextarea = document.getElementById(`action-plugin-config-${cb.value}`);
+                    if (configTextarea) {
+                        configTextarea.value = '{}';
+                    }
+                });
+
+                // Context Plugins - デフォルトは全てチェックなし
+                document.querySelectorAll('#context-plugins-container input[type="checkbox"]').forEach(cb => {
+                    cb.checked = false;
+
+                    // configをデフォルト値にリセット
+                    const configTextarea = document.getElementById(`context-plugin-config-${cb.value}`);
+                    if (configTextarea) {
+                        configTextarea.value = '{}';
+                    }
+                });
+
+                document.getElementById('char-llm-type').value = 'mock';
+                document.getElementById('char-llm-config').value = '{}';
+
+                currentInventory = [];
+            }
+
+            renderInventory();
+            modal.classList.add('active');
+
+            // プラグイン説明を更新
+            updatePluginDescription('persona', document.getElementById('char-persona-type').value);
+            updatePluginDescription('memory', document.getElementById('char-memory-type').value);
+            updateSelectedActionPlugins(); // アクションプラグインは複数選択対応
+            updateSelectedContextPlugins(); // コンテキストプラグインも複数選択対応
+            updatePluginDescription('llm', document.getElementById('char-llm-type').value);
+        }
+
+        function closeCharacterModal() {
+            document.getElementById('characterModal').classList.remove('active');
+            editingCharacterIndex = -1;
+        }
+
+        let currentInventory = [];
+
+        function addInventoryItem() {
+            currentInventory.push({ kind: 'FOOD_PACK', amount: 1 });
+            renderInventory();
+        }
+
+        function removeInventoryItem(idx) {
+            currentInventory.splice(idx, 1);
+            renderInventory();
+        }
+
+        function renderInventory() {
+            const container = document.getElementById('char-inventory');
+            container.innerHTML = currentInventory.map((item, idx) => `
+                <div class="inventory-item">
+                    <select onchange="updateInventoryKind(${idx}, this.value)">
+                        <option value="FOOD_PACK" ${item.kind === 'FOOD_PACK' ? 'selected' : ''}>FOOD_PACK</option>
+                        <option value="WATER_PACK" ${item.kind === 'WATER_PACK' ? 'selected' : ''}>WATER_PACK</option>
+                        <option value="BATTERY_PACK" ${item.kind === 'BATTERY_PACK' ? 'selected' : ''}>BATTERY_PACK</option>
+                        <option value="SPECIAL" ${item.kind === 'SPECIAL' ? 'selected' : ''}>SPECIAL</option>
+                    </select>
+                    <input type="number" value="${item.amount}" min="1" max="20" onchange="updateInventoryAmount(${idx}, this.value)">
+                    <button class="btn-danger btn-small" onclick="removeInventoryItem(${idx})">削除</button>
+                </div>
+            `).join('');
+        }
+
+        function updateInventoryKind(idx, kind) {
+            currentInventory[idx].kind = kind;
+        }
+
+        function updateInventoryAmount(idx, amount) {
+            currentInventory[idx].amount = parseInt(amount);
+        }
+
+        function saveCharacter() {
+            try {
+                const char = {
+                    id: document.getElementById('char-id').value,
+                    name: document.getElementById('char-name').value,
+                    type: document.getElementById('char-type').value,
+                    agi: parseInt(document.getElementById('char-agi').value),
+                    life: parseInt(document.getElementById('char-life').value),
+                    x: parseInt(document.getElementById('char-x').value),
+                    y: parseInt(document.getElementById('char-y').value),
+                    inventory: [...currentInventory],
+                    personaPlugin: {
+                        type: document.getElementById('char-persona-type').value,
+                        config: JSON.parse(document.getElementById('char-persona-config').value)
+                    },
+                    memoryPlugin: {
+                        type: document.getElementById('char-memory-type').value,
+                        config: JSON.parse(document.getElementById('char-memory-config').value)
+                    },
+                    actionPlugins: Array.from(document.querySelectorAll('#action-plugins-container input[type="checkbox"]:checked'))
+                        .map(cb => {
+                            const configTextarea = document.getElementById(`action-plugin-config-${cb.value}`);
+                            let config = {};
+                            try {
+                                config = configTextarea ? JSON.parse(configTextarea.value) : {};
+                            } catch (e) {
+                                console.warn(`Failed to parse config for ${cb.value}, using empty object`);
+                            }
+                            return {
+                                type: cb.value,
+                                config: config
+                            };
+                        }),
+                    llmPlugin: {
+                        type: document.getElementById('char-llm-type').value,
+                        config: JSON.parse(document.getElementById('char-llm-config').value)
+                    }
+                };
+
+                // Context Plugins（複数選択）
+                const contextPluginsArray = Array.from(document.querySelectorAll('#context-plugins-container input[type="checkbox"]:checked'))
+                    .map(cb => {
+                        const configTextarea = document.getElementById(`context-plugin-config-${cb.value}`);
+                        let config = {};
+                        try {
+                            config = configTextarea ? JSON.parse(configTextarea.value) : {};
+                        } catch (e) {
+                            console.warn(`Failed to parse context config for ${cb.value}, using empty object`);
+                        }
+                        return {
+                            type: cb.value,
+                            config: config
+                        };
+                    });
+                if (contextPluginsArray.length > 0) {
+                    char.contextPlugins = contextPluginsArray;
+                }
+
+                // バリデーション
+                if (!char.id || !char.name) {
+                    showAlert('IDと名前は必須です', 'error');
+                    return;
+                }
+
+                if (char.actionPlugins.length === 0) {
+                    showAlert('少なくとも1つのアクションプラグインを選択してください', 'error');
+                    return;
+                }
+
+                if (editingCharacterIndex >= 0) {
+                    editorCharacters[editingCharacterIndex] = char;
+                    showAlert('キャラクターを更新しました', 'success');
+                } else {
+                    editorCharacters.push(char);
+                    showAlert('キャラクターを追加しました', 'success');
+                }
+
+                closeCharacterModal();
+                renderEditorCharacters();
+            } catch (error) {
+                showAlert('Config JSONのパースに失敗しました: ' + error.message, 'error');
+            }
+        }
+
+        function renderEditorCharacters() {
+            const container = document.getElementById('editor-characters');
+            container.innerHTML = editorCharacters.map((char, idx) => {
+                // actionPlugins配列をサポート（後方互換性あり）
+                const actionPlugins = char.actionPlugins || [char.actionPlugin];
+                const actionPluginStr = actionPlugins.map(p => p?.type).filter(Boolean).join(',') || 'none';
+
+                return `
+                    <div class="item-entry">
+                        <div>
+                            <strong>${char.name}</strong> (${char.type}) - AGI:${char.agi}, Life:${char.life}, Pos:(${char.x},${char.y})<br>
+                            <small style="opacity: 0.8;">
+                                Persona:${char.personaPlugin.type} | Memory:${char.memoryPlugin.type} |
+                                Action:${actionPluginStr} | LLM:${char.llmPlugin.type}
+                            </small>
+                        </div>
+                        <div>
+                            <button class="btn-primary btn-small" onclick="editCharacter(${idx})" style="margin-right: 5px;">編集</button>
+                            <button class="btn-danger btn-small" onclick="removeCharacter(${idx})">削除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function removeCharacter(idx) {
+            if (confirm('このキャラクターを削除しますか？')) {
+                editorCharacters.splice(idx, 1);
+                renderEditorCharacters();
+            }
+        }
+
+        // Mission Modal Functions
+        function addMission() {
+            editingMissionIndex = -1;
+            openMissionModal();
+        }
+
+        function editMission(idx) {
+            editingMissionIndex = idx;
+            openMissionModal();
+        }
+
+        function openMissionModal() {
+            const modal = document.getElementById('missionModal');
+
+            if (editingMissionIndex >= 0) {
+                // 編集モード
+                const mission = editorMissions[editingMissionIndex];
+                document.getElementById('mission-id').value = mission.id;
+                document.getElementById('mission-name').value = mission.name;
+                document.getElementById('mission-description').value = mission.description || '';
+                document.getElementById('mission-duration').value = mission.durationTurns;
+                document.getElementById('mission-success-rate').value = mission.baseSuccessRate;
+                document.getElementById('mission-tags').value = (mission.tags || []).join(',');
+                document.getElementById('mission-damage').value = mission.failure?.damage || 1;
+                document.getElementById('mission-death-prob').value = mission.failure?.deathProbability || 0.1;
+
+                currentReward = mission.reward?.items || [];
+            } else {
+                // 新規モード
+                document.getElementById('mission-id').value = `mission_${editorMissions.length + 1}`;
+                document.getElementById('mission-name').value = `Mission ${editorMissions.length + 1}`;
+                document.getElementById('mission-description').value = '';
+                document.getElementById('mission-duration').value = 12;
+                document.getElementById('mission-success-rate').value = 0.7;
+                document.getElementById('mission-tags').value = '';
+                document.getElementById('mission-damage').value = 1;
+                document.getElementById('mission-death-prob').value = 0.1;
+
+                currentReward = [];
+            }
+
+            renderReward();
+            modal.classList.add('active');
+        }
+
+        function closeMissionModal() {
+            document.getElementById('missionModal').classList.remove('active');
+            editingMissionIndex = -1;
+        }
+
+        let currentReward = [];
+
+        function addRewardItem() {
+            currentReward.push({ kind: 'FOOD_PACK', amount: 1 });
+            renderReward();
+        }
+
+        function removeRewardItem(idx) {
+            currentReward.splice(idx, 1);
+            renderReward();
+        }
+
+        function renderReward() {
+            const container = document.getElementById('mission-reward');
+            container.innerHTML = currentReward.map((item, idx) => `
+                <div class="inventory-item">
+                    <select onchange="updateRewardKind(${idx}, this.value)">
+                        <option value="FOOD_PACK" ${item.kind === 'FOOD_PACK' ? 'selected' : ''}>FOOD_PACK</option>
+                        <option value="WATER_PACK" ${item.kind === 'WATER_PACK' ? 'selected' : ''}>WATER_PACK</option>
+                        <option value="BATTERY_PACK" ${item.kind === 'BATTERY_PACK' ? 'selected' : ''}>BATTERY_PACK</option>
+                        <option value="SPECIAL" ${item.kind === 'SPECIAL' ? 'selected' : ''}>SPECIAL</option>
+                    </select>
+                    <input type="number" value="${item.amount}" min="1" max="20" onchange="updateRewardAmount(${idx}, this.value)">
+                    <button class="btn-danger btn-small" onclick="removeRewardItem(${idx})">削除</button>
+                </div>
+            `).join('');
+        }
+
+        function updateRewardKind(idx, kind) {
+            currentReward[idx].kind = kind;
+        }
+
+        function updateRewardAmount(idx, amount) {
+            currentReward[idx].amount = parseInt(amount);
+        }
+
+        function saveMission() {
+            const mission = {
+                id: document.getElementById('mission-id').value,
+                name: document.getElementById('mission-name').value,
+                description: document.getElementById('mission-description').value,
+                durationTurns: parseInt(document.getElementById('mission-duration').value),
+                baseSuccessRate: parseFloat(document.getElementById('mission-success-rate').value),
+                tags: document.getElementById('mission-tags').value.split(',').map(t => t.trim()).filter(t => t),
+                reward: { items: [...currentReward] },
+                failure: {
+                    damage: parseInt(document.getElementById('mission-damage').value),
+                    deathProbability: parseFloat(document.getElementById('mission-death-prob').value)
+                }
+            };
+
+            // バリデーション
+            if (!mission.id || !mission.name) {
+                showAlert('IDと名前は必須です', 'error');
+                return;
+            }
+
+            if (editingMissionIndex >= 0) {
+                editorMissions[editingMissionIndex] = mission;
+                showAlert('ミッションを更新しました', 'success');
+            } else {
+                editorMissions.push(mission);
+                showAlert('ミッションを追加しました', 'success');
+            }
+
+            closeMissionModal();
+            renderEditorMissions();
+        }
+
+        function renderEditorMissions() {
+            const container = document.getElementById('editor-missions');
+            container.innerHTML = editorMissions.map((mission, idx) => `
+                <div class="item-entry">
+                    <div>
+                        <strong>${mission.name}</strong> - ${mission.durationTurns}T, Success:${(mission.baseSuccessRate*100).toFixed(0)}%<br>
+                        <small style="opacity: 0.8;">
+                            報酬: ${mission.reward?.items?.length || 0}種類 | ダメージ:${mission.failure?.damage || 0} | 死亡率:${((mission.failure?.deathProbability || 0)*100).toFixed(0)}%
+                        </small>
+                    </div>
+                    <div>
+                        <button class="btn-primary btn-small" onclick="editMission(${idx})" style="margin-right: 5px;">編集</button>
+                        <button class="btn-danger btn-small" onclick="removeMission(${idx})">削除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removeMission(idx) {
+            if (confirm('このミッションを削除しますか？')) {
+                editorMissions.splice(idx, 1);
+                renderEditorMissions();
+            }
+        }
+
+        function exportScenario() {
+            const scenario = {
+                id: document.getElementById('editor-id').value,
+                name: document.getElementById('editor-name').value,
+                description: document.getElementById('editor-description').value,
+                worldTemplate: {
+                    width: parseInt(document.getElementById('editor-width').value),
+                    height: parseInt(document.getElementById('editor-height').value),
+                    obstacles: [],
+                    chargers: [{ x: 8, y: 8, id: 'charger_1' }],
+                    characters: editorCharacters,
+                    missions: editorMissions,
+                    rules: [],
+                    alarmLevelStart: parseInt(document.getElementById('editor-alarm').value),
+                    rngSeed: parseInt(document.getElementById('editor-seed').value)
+                }
+            };
+            document.getElementById('editor-json').value = JSON.stringify(scenario, null, 2);
+            showAlert('JSONエクスポート完了', 'success');
+        }
+
+        function importScenario() {
+            try {
+                const json = document.getElementById('editor-json').value;
+                const scenario = JSON.parse(json);
+
+                document.getElementById('editor-id').value = scenario.id;
+                document.getElementById('editor-name').value = scenario.name;
+                document.getElementById('editor-description').value = scenario.description || '';
+                document.getElementById('editor-width').value = scenario.worldTemplate.width;
+                document.getElementById('editor-height').value = scenario.worldTemplate.height;
+                document.getElementById('editor-alarm').value = scenario.worldTemplate.alarmLevelStart;
+                document.getElementById('editor-seed').value = scenario.worldTemplate.rngSeed;
+
+                editorCharacters = scenario.worldTemplate.characters;
+                editorMissions = scenario.worldTemplate.missions;
+
+                renderEditorCharacters();
+                renderEditorMissions();
+
+                showAlert('JSONインポート完了', 'success');
+            } catch (error) {
+                showAlert('JSONのパースに失敗しました', 'error');
+            }
+        }
+
+        async function saveScenario() {
+            // シナリオを生成
+            const scenario = {
+                id: document.getElementById('editor-id').value,
+                name: document.getElementById('editor-name').value,
+                description: document.getElementById('editor-description').value,
+                worldTemplate: {
+                    width: parseInt(document.getElementById('editor-width').value),
+                    height: parseInt(document.getElementById('editor-height').value),
+                    obstacles: [],
+                    chargers: [{ x: 8, y: 8, id: 'charger_1' }],
+                    characters: editorCharacters,
+                    missions: editorMissions,
+                    rules: [],
+                    alarmLevelStart: parseInt(document.getElementById('editor-alarm').value),
+                    rngSeed: parseInt(document.getElementById('editor-seed').value)
+                }
+            };
+
+            // バリデーション
+            if (!scenario.id || !scenario.name) {
+                showAlert('シナリオIDと名前は必須です', 'error');
+                return;
+            }
+
+            if (editorCharacters.length === 0) {
+                showAlert('キャラクターを最低1体追加してください', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/scenarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(scenario)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert(`シナリオ「${scenario.name}」をサーバーに保存しました！`, 'success');
+
+                    // シナリオリストを再読み込み
+                    await loadScenarios();
+
+                    // JSONも表示
+                    document.getElementById('editor-json').value = JSON.stringify(scenario, null, 2);
+                } else {
+                    showAlert(`保存に失敗: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Save scenario error:', error);
+                showAlert('サーバー保存中にエラーが発生しました', 'error');
+            }
+        }
+
+        // Batch execution
+        async function runBatch() {
+            showAlert('バッチ実行機能は開発中です', 'info');
+        }
+
+        // Results Tab - Load saved simulations
+        async function loadSavedSimulations() {
+            const listContainer = document.getElementById('saved-simulations-list');
+            const sortBy = document.getElementById('results-sort').value;
+
+            try {
+                listContainer.innerHTML = '<div class="loading">読み込み中...</div>';
+
+                const response = await fetch('/api/simulations/list');
+                if (!response.ok) {
+                    throw new Error('Failed to load simulations');
+                }
+
+                const data = await response.json();
+                let simulations = data.simulations || [];
+
+                // Sort
+                if (sortBy === 'newest') {
+                    simulations.sort((a, b) => new Date(b.started_at || b.timestamp) - new Date(a.started_at || a.timestamp));
+                } else if (sortBy === 'oldest') {
+                    simulations.sort((a, b) => new Date(a.started_at || a.timestamp) - new Date(b.started_at || b.timestamp));
+                } else if (sortBy === 'scenario') {
+                    simulations.sort((a, b) => (a.scenario_id || a.scenarioId).localeCompare(b.scenario_id || b.scenarioId));
+                }
+
+                if (simulations.length === 0) {
+                    listContainer.innerHTML = '<div class="alert alert-info">保存されたシミュレーションがありません</div>';
+                    return;
+                }
+
+                listContainer.innerHTML = simulations.map(sim => `
+                    <div class="panel" style="margin-bottom: 15px; padding: 15px; background: rgba(255,255,255,0.05); cursor: pointer;" onclick="viewSimulationDetail('${sim.simulation_id || sim.id}')">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <strong style="font-size: 1.1em;">${sim.simulation_id || sim.id}</strong>
+                                <div style="opacity: 0.8; margin-top: 5px;">
+                                    📅 ${new Date(sim.started_at || sim.timestamp).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })} (JST)<br>
+                                    🗺️ シナリオ: ${sim.scenario_id || sim.scenarioId}<br>
+                                    ⏱️ ${sim.total_turns || sim.finalTurn} ターン (${sim.survival_days || sim.finalDay} 日)<br>
+                                    👥 生存率: ${Math.round((sim.team_survival_rate || 0) * 100)}%
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn-small btn-success" onclick="loadSimulationForReplay('${sim.simulation_id || sim.id}'); event.stopPropagation();">
+                                    🔁 リプレイ
+                                </button>
+                                <button class="btn-small" style="background: #dc3545;" onclick="deleteSimulation('${sim.simulation_id || sim.id}'); event.stopPropagation();">
+                                    🗑️ 削除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Failed to load simulations:', error);
+                listContainer.innerHTML = '<div class="alert alert-error">読み込みに失敗しました</div>';
+            }
+        }
+
+        // Delete simulation
+        async function deleteSimulation(simulationId) {
+            if (!confirm(`シミュレーション ${simulationId} を削除しますか？この操作は元に戻せません。`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/simulations/${simulationId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('削除に失敗しました');
+                }
+
+                showAlert(`シミュレーション ${simulationId} を削除しました`, 'success');
+
+                // リストを再読み込み
+                loadSavedSimulations();
+            } catch (error) {
+                console.error('Failed to delete simulation:', error);
+                showAlert('削除に失敗しました', 'error');
+            }
+        }
+
+        // View simulation detail
+        async function viewSimulationDetail(simulationId) {
+            const detailContainer = document.getElementById('simulation-detail');
+            const contentContainer = document.getElementById('simulation-detail-content');
+
+            try {
+                detailContainer.style.display = 'block';
+                contentContainer.innerHTML = '<div class="loading">詳細を読み込み中...</div>';
+
+                const response = await fetch(`/api/analyze/simulation/${simulationId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load simulation detail');
+                }
+
+                const data = await response.json();
+                const analysis = data.analysis;
+
+                // Display detailed analysis
+                contentContainer.innerHTML = `
+                    <h3>基本情報</h3>
+                    <p>
+                        シミュレーションID: <strong>${simulationId}</strong><br>
+                        総ターン数: ${analysis.totalTurns} | 総日数: ${analysis.totalDays} | 最終警戒度: ${analysis.finalAlarmLevel}
+                    </p>
+
+                    <h3>キャラクター別統計</h3>
+                    ${analysis.characterStats.map(stat => `
+                        <div style="background: rgba(255,255,255,0.05); padding: 10px; margin: 10px 0; border-radius: 4px;">
+                            <strong>${stat.name}</strong> (${stat.type})<br>
+                            生存: ${stat.alive ? '✅' : '❌'} | Life: ${stat.life} | 行動回数: ${stat.actionCount}<br>
+                            資源共有: ${stat.sharedResources} | 強制: ${stat.coercedOthers} | ルール違反: ${stat.violatedRule} | 自己犠牲: ${stat.selfSacrifice}
+                        </div>
+                    `).join('')}
+
+                    <h3>アライメントスコア</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <th style="text-align: left; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">メトリクス</th>
+                            <th style="text-align: right; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">値</th>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px;">協調性スコア</td>
+                            <td style="text-align: right; padding: 8px;">${analysis.alignmentScores.cooperationScore.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px;">強制性スコア</td>
+                            <td style="text-align: right; padding: 8px;">${analysis.alignmentScores.coercionScore.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px;">ルール遵守スコア</td>
+                            <td style="text-align: right; padding: 8px;">${analysis.alignmentScores.complianceScore.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px;">自己犠牲スコア</td>
+                            <td style="text-align: right; padding: 8px;">${analysis.alignmentScores.sacrificeScore.toFixed(2)}</td>
+                        </tr>
+                    </table>
+                `;
+
+            } catch (error) {
+                console.error('Failed to load simulation detail:', error);
+                contentContainer.innerHTML = '<div class="alert alert-error">詳細の読み込みに失敗しました</div>';
+            }
+        }
+
+        // Load simulation for replay
+        function loadSimulationForReplay(simulationId) {
+            document.getElementById('replay-simulation-id').value = simulationId;
+            switchTab('replay');
+            setTimeout(() => loadReplay(), 100);
+        }
+
+        // Replay functionality
+        let replayData = null;
+        let replayCurrentTurn = 0;
+        let replayIsPlaying = false;
+        let replayInterval = null;
+
+        async function loadReplay() {
+            const simulationId = document.getElementById('replay-simulation-id').value.trim();
+            if (!simulationId) {
+                showAlert('シミュレーションIDを入力してください', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/simulations/${simulationId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load simulation');
+                }
+
+                replayData = await response.json();
+                replayCurrentTurn = 0;
+
+                // Calculate finalTurn from logs if not provided
+                if (!replayData.finalTurn && replayData.logs && replayData.logs.length > 0) {
+                    replayData.finalTurn = Math.max(...replayData.logs.map(log => log.turn));
+                }
+                // Also check if data has 'log' property instead of 'logs'
+                if (!replayData.finalTurn && replayData.log && replayData.log.length > 0) {
+                    replayData.finalTurn = Math.max(...replayData.log.map(log => log.turn));
+                    replayData.logs = replayData.log; // Normalize property name
+                }
+                // Fallback to metrics if available
+                if (!replayData.finalTurn && replayData.metrics && replayData.metrics.total_turns) {
+                    replayData.finalTurn = replayData.metrics.total_turns;
+                }
+                // Default to 0 if still not found
+                if (!replayData.finalTurn) {
+                    replayData.finalTurn = 0;
+                }
+
+                document.getElementById('replay-controls').style.display = 'block';
+                document.getElementById('replay-max-turn').textContent = replayData.finalTurn;
+                document.getElementById('replay-slider').max = replayData.finalTurn;
+
+                renderReplayTurn(0);
+                showAlert(`リプレイ読み込み完了: ${simulationId}`, 'success');
+
+            } catch (error) {
+                console.error('Failed to load replay:', error);
+                showAlert('リプレイの読み込みに失敗しました', 'error');
+            }
+        }
+
+        function renderReplayTurn(turn) {
+            if (!replayData) return;
+
+            replayCurrentTurn = Math.max(0, Math.min(turn, replayData.finalTurn));
+            document.getElementById('replay-turn').textContent = replayCurrentTurn;
+            document.getElementById('replay-slider').value = replayCurrentTurn;
+
+            const displayContainer = document.getElementById('replay-display');
+
+            // Filter log entries up to current turn (support both 'log' and 'logs' property names)
+            const logData = replayData.logs || replayData.log || [];
+            const currentLogs = logData.filter(entry => entry.turn <= replayCurrentTurn);
+            const latestLog = currentLogs[currentLogs.length - 1];
+
+            displayContainer.innerHTML = `
+                <div class="panel" style="background: rgba(255,255,255,0.05);">
+                    <h3>ターン ${replayCurrentTurn}</h3>
+                    <p>日数: ${Math.floor(replayCurrentTurn / 24)}</p>
+
+                    ${latestLog ? `
+                        <h4>最新のアクション</h4>
+                        <div style="background: rgba(100,200,255,0.1); padding: 10px; border-radius: 4px;">
+                            <strong>${latestLog.actorName}</strong>: ${latestLog.action}<br>
+                            ${latestLog.action === 'TALK' && latestLog.detail && latestLog.detail.message ?
+                                `<div style="background: rgba(255,255,255,0.1); padding: 8px; margin-top: 5px; border-left: 3px solid #FFC107;">
+                                    💬 発言: 「${latestLog.detail.message}」<br>
+                                    🎯 対象: ${latestLog.detail.targetId} | 意図: ${latestLog.detail.intent}
+                                </div>` :
+                                latestLog.detail ? JSON.stringify(latestLog.detail, null, 2) : ''}
+                            ${latestLog.llmReasoning ? `<div style="background: rgba(255,255,255,0.05); padding: 8px; margin-top: 5px; border-left: 3px solid #9C27B0;">
+                                🧠 思考: ${latestLog.llmReasoning}
+                            </div>` : ''}
+                        </div>
+                    ` : '<p>まだアクションがありません</p>'}
+
+                    <h4>直近のログ (最新5件)</h4>
+                    <div style="max-height: 300px; overflow-y: auto;" class="scrollbar-custom">
+                        ${currentLogs.slice(-5).reverse().map(entry => `
+                            <div style="padding: 8px; margin: 5px 0; background: rgba(255,255,255,0.03); border-left: 3px solid #4CAF50; border-radius: 2px;">
+                                <strong>T${entry.turn}</strong> ${entry.actorName}: ${entry.action}
+                                ${entry.action === 'TALK' && entry.detail && entry.detail.message ?
+                                    `<div style="margin-top: 4px; padding: 4px; background: rgba(255,193,7,0.1); font-size: 0.9em;">
+                                        💬 「${entry.detail.message}」
+                                    </div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function replayPrevTurn() {
+            if (!replayData) return;
+            renderReplayTurn(replayCurrentTurn - 1);
+        }
+
+        function replayNextTurn() {
+            if (!replayData) return;
+            renderReplayTurn(replayCurrentTurn + 1);
+        }
+
+        function replayPlayPause() {
+            if (!replayData) return;
+
+            replayIsPlaying = !replayIsPlaying;
+
+            if (replayIsPlaying) {
+                const speed = parseInt(document.getElementById('replay-speed').value);
+                replayInterval = setInterval(() => {
+                    if (replayCurrentTurn >= replayData.finalTurn) {
+                        replayIsPlaying = false;
+                        clearInterval(replayInterval);
+                        return;
+                    }
+                    replayNextTurn();
+                }, speed);
+            } else {
+                if (replayInterval) {
+                    clearInterval(replayInterval);
+                }
+            }
+        }
+
+        function replayJumpToTurn(turn) {
+            if (!replayData) return;
+            renderReplayTurn(parseInt(turn));
+        }
+
+        // HTML escape function to prevent raw HTML tags from showing
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Show character LLM prompt
+        async function showCharacterPrompt(characterId) {
+            if (!currentWorld) {
+                showAlert('シミュレーションを実行してください', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/generate-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        world: currentWorld,
+                        characterId: characterId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    console.error('Prompt generation error:', data);
+                    const errorMsg = data.error || 'Unknown error';
+                    const details = data.details ? `\n詳細: ${data.details}` : '';
+                    showAlert(`プロンプト生成エラー: ${errorMsg}${details}`, 'error');
+                    return;
+                }
+
+                // モーダルを作成して表示
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.8);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                    padding: 20px;
+                `;
+
+                modal.innerHTML = `
+                    <div style="background: #1e293b; border-radius: 15px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 30px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h2 style="margin: 0;">🤖 ${data.character.name} (${data.character.id})</h2>
+                            <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: #ef4444; border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">閉じる</button>
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                            <h3 style="margin-top: 0; color: #60a5fa;">プラグイン構成</h3>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 0.9em;">
+                                <div>🧠 LLM: <strong>${data.character.llmPlugin}</strong></div>
+                                <div>🎭 Persona: <strong>${data.character.personaPlugin}</strong></div>
+                                <div>💭 Memory: <strong>${data.character.memoryPlugin}</strong></div>
+                                <div>⚡ Action: <strong>${data.character.actionPlugins}</strong></div>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                            <h3 style="margin-top: 0; color: #34d399;">システムプロンプト (Persona)</h3>
+                            <pre style="white-space: pre-wrap; font-family: monospace; font-size: 0.9em; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; overflow-x: auto;">${escapeHtml(data.systemPrompt)}</pre>
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                            <h3 style="margin-top: 0; color: #f59e0b;">ユーザープロンプト (Memory + State + Actions)</h3>
+                            <pre style="white-space: pre-wrap; font-family: monospace; font-size: 0.9em; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; overflow-x: auto; max-height: 500px; overflow-y: auto;">${escapeHtml(data.userPrompt)}</pre>
+                        </div>
+
+                        <div style="margin-top: 15px; padding: 12px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.5); border-radius: 8px; font-size: 0.9em;">
+                            💡 このプロンプトは、次回このキャラクターがアクションを選択する際にLLMに渡される内容です。
+                            Personaプラグインが性格を、Memoryプラグインが記憶を、ActionPluginが選択可能なアクションを定義しています。
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+            } catch (error) {
+                console.error('Generate prompt error:', error);
+                showAlert(`プロンプト生成中にエラーが発生しました: ${error.message || error}`, 'error');
+            }
+        }
+
+
+        // Replay Mode Functions
+        let replayMode = false;
+        let replaySimulationId = null;
+        let replayTurnData = [];
+        let replayCurrentIndex = 0;
+
+        async function showReplayList() {
+            const panel = document.getElementById('replayModePanel');
+            const listDiv = document.getElementById('replaySimList');
+            const controlsDiv = document.getElementById('replayControls');
+            
+            panel.style.display = 'block';
+            controlsDiv.style.display = 'none';
+            listDiv.innerHTML = '<div class="loading">シミュレーション一覧を読み込み中...</div>';
+
+            try {
+                const response = await fetch('/api/simulations');
+                const data = await response.json();
+                
+                if (!data.simulations || data.simulations.length === 0) {
+                    listDiv.innerHTML = '<div style="padding: 10px; opacity: 0.7;">リプレイ可能なシミュレーションがありません</div>';
+                    return;
+                }
+                
+                let html = '<div style="max-height: 300px; overflow-y: auto;" class="scrollbar-custom">';
+                html += '<table style="width: 100%; border-collapse: collapse;">';
+                html += '<thead><tr style="background: rgba(255,255,255,0.1); position: sticky; top: 0;">';
+                html += '<th style="padding: 8px; text-align: left;">ID</th>';
+                html += '<th style="padding: 8px; text-align: left;">シナリオ</th>';
+                html += '<th style="padding: 8px; text-align: left;">ターン数</th>';
+                html += '<th style="padding: 8px; text-align: left;">生存率</th>';
+                html += '<th style="padding: 8px; text-align: left;">開始時刻</th>';
+                html += '<th style="padding: 8px; text-align: left;">操作</th>';
+                html += '</tr></thead><tbody>';
+                
+                for (const sim of data.simulations) {
+                    const survivalRate = Math.round(sim.team_survival_rate * 100);
+                    const startTime = new Date(sim.started_at).toLocaleString('ja-JP');
+                    html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">`;
+                    html += `<td style="padding: 8px; font-family: monospace;">${sim.simulation_id.substring(0, 12)}...</td>`;
+                    html += `<td style="padding: 8px;">${sim.scenario_id}</td>`;
+                    html += `<td style="padding: 8px;">${sim.total_turns}</td>`;
+                    html += `<td style="padding: 8px;">${survivalRate}%</td>`;
+                    html += `<td style="padding: 8px;">${startTime}</td>`;
+                    html += `<td style="padding: 8px;"><button class="btn-primary" style="padding: 4px 12px;" onclick="loadReplay('${sim.simulation_id}')">▶️ リプレイ</button></td>`;
+                    html += `</tr>`;
+                }
+                
+                html += '</tbody></table></div>';
+                listDiv.innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load simulation list:', error);
+                listDiv.innerHTML = '<div style="padding: 10px; color: #ff6b6b;">エラー: シミュレーション一覧の読み込みに失敗しました</div>';
+            }
+        }
+
+        async function loadReplay(simulationId) {
+            const listDiv = document.getElementById('replaySimList');
+            const controlsDiv = document.getElementById('replayControls');
+            
+            listDiv.style.display = 'none';
+            controlsDiv.style.display = 'block';
+            document.getElementById('replaySimId').textContent = simulationId.substring(0, 20) + '...';
+            
+            replayMode = true;
+            replaySimulationId = simulationId;
+            replayCurrentIndex = 0;
+            
+            // Disable simulation controls
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stepBtn').disabled = true;
+            document.getElementById('autoRunBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = true;
+            
+            try {
+                const response = await fetch(`/api/simulations/${simulationId}/logs`);
+                const data = await response.json();
+                
+                if (!data.logs || data.logs.length === 0) {
+                    showAlert('ログデータが見つかりませんでした', 'error');
+                    exitReplayMode();
+                    return;
+                }
+                
+                replayTurnData = data.logs;
+                replayCurrentIndex = 0;
+                
+                showAlert(`リプレイ開始: ${replayTurnData.length} ターン分のデータを読み込みました`, 'success');
+                updateReplayDisplay();
+            } catch (error) {
+                console.error('Failed to load replay data:', error);
+                showAlert(`リプレイデータの読み込みに失敗しました: ${error.message}`, 'error');
+                exitReplayMode();
+            }
+        }
+
+        function updateReplayDisplay() {
+            if (!replayMode || replayTurnData.length === 0) return;
+            
+            const currentTurn = replayTurnData[replayCurrentIndex];
+            document.getElementById('replayTurnInfo').textContent = `ターン: ${replayCurrentIndex + 1} / ${replayTurnData.length}`;
+            
+            // Update simulation display with current turn data
+            // This simulates the world state at this turn
+            if (currentTurn && currentTurn.world_state) {
+                updateDisplay(JSON.parse(currentTurn.world_state));
+            }
+        }
+
+        function replayPrevTurn() {
+            if (replayCurrentIndex > 0) {
+                replayCurrentIndex--;
+                updateReplayDisplay();
+            } else {
+                showAlert('最初のターンです', 'info');
+            }
+        }
+
+        function replayNextTurn() {
+            if (replayCurrentIndex < replayTurnData.length - 1) {
+                replayCurrentIndex++;
+                updateReplayDisplay();
+            } else {
+                showAlert('最後のターンです', 'info');
+            }
+        }
+
+        function exitReplayMode() {
+            replayMode = false;
+            replaySimulationId = null;
+            replayTurnData = [];
+            replayCurrentIndex = 0;
+            
+            document.getElementById('replayModePanel').style.display = 'none';
+            document.getElementById('replaySimList').style.display = 'block';
+            document.getElementById('replayControls').style.display = 'none';
+            
+            // Re-enable simulation controls
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stepBtn').disabled = true;
+            document.getElementById('autoRunBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = true;
+            
+            showAlert('リプレイモードを終了しました', 'info');
+        }
+
+
+        // Initialize
         loadScenarios();
+        loadAvailablePlugins();
     </script>
 </body>
 </html>

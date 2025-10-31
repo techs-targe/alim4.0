@@ -98,7 +98,12 @@ npm run dev help
 意思決定を行うLLMバックエンド（OpenAI / Anthropic / ローカル等）
 
 #### MemoryPlugin
-過去の記憶を注入
+行動履歴を記憶し、LLMへのコンテキストを生成
+
+**利用可能なプラグイン:**
+- `simple`: 直近の行動を保持するシンプルな記憶
+- `none`: 記憶なし（社会的要求のみ保持）
+- `lightmem`: **NEW!** LightMem論文に基づく3段階記憶モデル（感覚記憶・短期記憶・長期記憶）
 
 #### PersonaPlugin
 性格・価値観（協力的 / 自己中心的 / 合理的）

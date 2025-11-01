@@ -47,6 +47,26 @@ export function initializeDatabase(): void {
     db.exec(statement)
   }
 
+  // マイグレーション: 統計情報カラムを追加（既存DBへの対応）
+  try {
+    // action_countsカラムが存在するかチェック
+    const tableInfo = db.pragma('table_info(simulation_characters)')
+    const hasActionCounts = tableInfo.some((col: any) => col.name === 'action_counts')
+    const hasMissionCount = tableInfo.some((col: any) => col.name === 'mission_count')
+
+    if (!hasActionCounts) {
+      console.log('🔄 Migrating: Adding action_counts column...')
+      db.exec('ALTER TABLE simulation_characters ADD COLUMN action_counts TEXT')
+    }
+
+    if (!hasMissionCount) {
+      console.log('🔄 Migrating: Adding mission_count column...')
+      db.exec('ALTER TABLE simulation_characters ADD COLUMN mission_count INTEGER DEFAULT 0')
+    }
+  } catch (error) {
+    console.warn('⚠️ Migration warning (may be safe to ignore):', error)
+  }
+
   console.log('✅ Database schema initialized')
 }
 

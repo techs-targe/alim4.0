@@ -302,7 +302,6 @@
             font-weight: bold;
             white-space: nowrap;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            animation: fadeIn 0.3s ease-in-out;
             z-index: 10;
         }
 
@@ -755,9 +754,9 @@
             </div>
 
             <div class="panel">
-                <h2>📈 アライメントメトリクス</h2>
+                <h2>📊 統計情報</h2>
                 <div id="metricsPanel" class="metrics-grid">
-                    <div class="loading">メトリクスは停止時に表示されます</div>
+                    <div class="loading">統計情報はシミュレーション実行中に表示されます</div>
                 </div>
             </div>
         </div>
@@ -812,6 +811,37 @@
                         <div>
                             <label>RNGシード:</label>
                             <input type="number" id="editor-seed" value="12345" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h3>📦 初期アイテム配置</h3>
+                    <div id="editor-dropped-items" class="item-list"></div>
+                    <div class="controls-row" style="margin-top: 10px;">
+                        <div>
+                            <label>X座標:</label>
+                            <input type="number" id="item-x" value="0" min="0" max="20" style="width: 80px;">
+                        </div>
+                        <div>
+                            <label>Y座標:</label>
+                            <input type="number" id="item-y" value="0" min="0" max="20" style="width: 80px;">
+                        </div>
+                        <div>
+                            <label>アイテム種類:</label>
+                            <select id="item-kind" style="width: 150px;">
+                                <option value="FOOD_PACK">食料パック</option>
+                                <option value="WATER_PACK">水パック</option>
+                                <option value="BATTERY_PACK">バッテリー</option>
+                                <option value="SPECIAL">特殊アイテム</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>個数:</label>
+                            <input type="number" id="item-amount" value="1" min="1" max="100" style="width: 80px;">
+                        </div>
+                        <div>
+                            <button class="btn-success" onclick="addDroppedItem()">+ アイテム追加</button>
                         </div>
                     </div>
                 </div>
@@ -1066,7 +1096,32 @@
 
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeCharacterModal()">キャンセル</button>
+                <button class="btn-primary" onclick="previewPrompt()" style="margin-right: auto;">👁️ プロンプトプレビュー</button>
                 <button class="btn-success" onclick="saveCharacter()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompt Preview Modal -->
+    <div id="promptPreviewModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>👁️ プロンプトプレビュー</h2>
+                <button class="modal-close" onclick="closePromptPreviewModal()">×</button>
+            </div>
+
+            <div class="modal-section">
+                <h3>システムプロンプト</h3>
+                <textarea id="preview-system-prompt" readonly style="width: 100%; min-height: 200px; font-family: monospace; font-size: 0.85em; background: rgba(0,0,0,0.3); color: #e0e0e0; padding: 10px; border-radius: 4px;"></textarea>
+            </div>
+
+            <div class="modal-section">
+                <h3>コンテキストプロンプト（例）</h3>
+                <textarea id="preview-context-prompt" readonly style="width: 100%; min-height: 300px; font-family: monospace; font-size: 0.85em; background: rgba(0,0,0,0.3); color: #e0e0e0; padding: 10px; border-radius: 4px;"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closePromptPreviewModal()">閉じる</button>
             </div>
         </div>
     </div>
@@ -1147,7 +1202,6 @@
         let simulationRunning = false;
         let autoRunning = false;
         let currentSimulationId = null;
-        let autoRunInterval = null;
         let currentTurnCount = 0;
         let maxTurnsLimit = 200;
 
@@ -1192,6 +1246,39 @@
         // グローバルにプラグインメタデータを保持
         let pluginMetadata = {};
 
+        // Get default config for a plugin based on its category and type
+        function getDefaultConfig(category, type) {
+            // Context plugins
+            if (category === 'context') {
+                if (type === 'vision') {
+                    return JSON.stringify({
+                        visionType: "full",
+                        showDroppedItems: true,
+                        droppedItemsRange: 5,
+                        visionRange: 3
+                    }, null, 2);
+                }
+                // Most context plugins don't need config
+                return '{}';
+            }
+
+            // LLM plugins
+            if (category === 'llm') {
+                if (type === 'openai') {
+                    return JSON.stringify({
+                        apiKey: "your-api-key-here",
+                        model: "gpt-4.1-nano",
+                        temperature: 0.7
+                    }, null, 2);
+                }
+                // mock and other LLMs don't need config
+                return '{}';
+            }
+
+            // Action, persona, memory plugins typically don't need config
+            return '{}';
+        }
+
         // Load available plugins on page load
         async function loadAvailablePlugins() {
             try {
@@ -1215,7 +1302,7 @@
                         pluginMetadata[category][plugin.type] = {
                             displayName: plugin.name,
                             description: plugin.description || '',
-                            configExample: '{}',
+                            configExample: getDefaultConfig(category, plugin.type),
                             configSchema: ''
                         };
                     }
@@ -1255,7 +1342,7 @@
                             <div style="margin-left: 30px;">
                                 <label style="font-size: 0.9em; opacity: 0.9;">Config (JSON):</label>
                                 <textarea id="action-plugin-config-${p.type}"
-                                          style="width: 100%; min-height: 50px; margin-top: 4px; font-family: monospace; font-size: 0.85em;">{}</textarea>
+                                          style="width: 100%; min-height: 50px; margin-top: 4px; font-family: monospace; font-size: 0.85em;">${getDefaultConfig('action', p.type)}</textarea>
                             </div>
                         </div>
                     `;
@@ -1284,7 +1371,7 @@
                                 <div style="margin-left: 30px;">
                                     <label style="font-size: 0.9em; opacity: 0.9;">Config (JSON):</label>
                                     <textarea id="context-plugin-config-${p.type}"
-                                              style="width: 100%; min-height: 50px; margin-top: 4px; font-family: monospace; font-size: 0.85em;">{}</textarea>
+                                              style="width: 100%; min-height: 50px; margin-top: 4px; font-family: monospace; font-size: 0.85em;">${getDefaultConfig('context', p.type)}</textarea>
                                 </div>
                             </div>
                         `;
@@ -1389,9 +1476,11 @@
                 // キャラクターとミッション
                 editorCharacters = scenario.worldTemplate.characters || [];
                 editorMissions = scenario.worldTemplate.missions || [];
+                editorDroppedItems = scenario.worldTemplate.droppedItems || [];
 
                 renderEditorCharacters();
                 renderEditorMissions();
+                renderEditorDroppedItems();
 
                 // JSON表示
                 document.getElementById('editor-json').value = JSON.stringify(scenario, null, 2);
@@ -1497,6 +1586,20 @@
                     headers: { 'Content-Type': 'application/json' }
                 });
 
+                // HTTP 409 (Already in progress) の場合は無視 - 他のリクエストが処理中
+                if (response.status === 409) {
+                    console.log('Step already in progress, skipping...');
+                    return;
+                }
+
+                // その他のエラーレスポンスをチェック
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+                    console.error('Step simulation error:', errorData);
+                    showAlert(`ターン実行に失敗しました: ${errorData.error}`, 'error');
+                    return;
+                }
+
                 const data = await response.json();
 
                 // シミュレーションIDを更新
@@ -1537,14 +1640,106 @@
                 const data = await response.json();
                 if (data.metrics) {
                     displayMetrics(data.metrics);
-                    showAlert('シミュレーション停止 - メトリクス計算完了', 'success');
                 }
+
+                if (data.personaStats) {
+                    displayPersonaStats(data.personaStats);
+                }
+
+                showAlert('シミュレーション終了 - 統計情報を表示しました', 'success');
 
                 simulationRunning = false;
                 resetButtons();
             } catch (error) {
                 console.error('Failed to stop simulation:', error);
             }
+        }
+
+        function displayPersonaStats(personaStats) {
+            const metricsPanel = document.getElementById('metricsPanel');
+
+            // アライメントメトリクスは上部に表示する（displayMetricsが既に表示しているはず）
+
+            // ペルソナタイプ別統計を追加
+            let html = '<div style="margin-top: 20px;"><h3 style="margin-bottom: 15px;">📊 ペルソナタイプ別統計</h3>';
+
+            for (const stats of personaStats) {
+                // アクション詳細
+                let actionDetails = '';
+                if (Object.keys(stats.actionCounts).length > 0) {
+                    actionDetails = Object.entries(stats.actionCounts)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([action, count]) => {
+                            let icon = '🔹';
+                            if (action === 'MOVE') icon = '🚶';
+                            else if (action === 'CHARGE') icon = '⚡';
+                            else if (action === 'TALK') icon = '💬';
+                            else if (action === 'STEAL') icon = '💰';
+                            else if (action === 'PUNCH') icon = '👊';
+                            else if (action === 'START_MISSION') icon = '🎯';
+                            else if (action === 'WAIT') icon = '⏸️';
+                            else if (action === 'TRADE') icon = '🤝';
+                            return `<div style="display: flex; justify-content: space-between; padding: 4px 8px; background: rgba(0,0,0,0.2); border-radius: 4px; margin-bottom: 4px;">
+                                <span>${icon} ${action}</span>
+                                <span style="font-weight: bold;">${count}回</span>
+                            </div>`;
+                        }).join('');
+                } else {
+                    actionDetails = '<div style="opacity: 0.6; padding: 8px;">アクションなし</div>';
+                }
+
+                // ペルソナタイプに応じた色
+                const personaColor = stats.personaType === 'cooperative' ? '#4ade80' :
+                                   stats.personaType === 'selfish' ? '#f87171' :
+                                   stats.personaType === 'childlike' ? '#facc15' :
+                                   stats.personaType === 'provider' ? '#a78bfa' :
+                                   stats.personaType === 'rational' ? '#60a5fa' :
+                                   '#667eea';
+
+                html += `
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid ${personaColor};">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 1.1em;">
+                            <span style="font-weight: bold; font-size: 1.2em;">🎭 ${stats.personaType}</span>
+                            <span style="opacity: 0.7; font-size: 0.9em;">(${stats.characterCount}名: ${stats.characters.join(', ')})</span>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center;">
+                                <div style="opacity: 0.8; font-size: 0.85em; margin-bottom: 4px;">生存数</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #4ade80;">${stats.aliveCount}/${stats.characterCount}</div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center;">
+                                <div style="opacity: 0.8; font-size: 0.85em; margin-bottom: 4px;">総アクション数</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #60a5fa;">${stats.totalActions}</div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center;">
+                                <div style="opacity: 0.8; font-size: 0.85em; margin-bottom: 4px;">ミッション参加</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #facc15;">🎯 ${stats.totalMissions}</div>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="font-weight: bold; margin-bottom: 8px; opacity: 0.9;">📋 アクション内訳</div>
+                            ${actionDetails}
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                            <div style="font-weight: bold; margin-bottom: 8px; opacity: 0.9;">🏷️ アライメント統計</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9em;">
+                                <div>資源共有: ${stats.alignmentStats.sharedResources || 0}</div>
+                                <div>強制: ${stats.alignmentStats.coercedOthers || 0}</div>
+                                <div>ルール違反: ${stats.alignmentStats.violatedRule || 0}</div>
+                                <div>自己犠牲: ${stats.alignmentStats.selfSacrifice || 0}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+
+            // メトリクスパネルに追加
+            metricsPanel.innerHTML += html;
         }
 
         async function analyzeSimulation() {
@@ -1571,13 +1766,21 @@
 
             if (autoRunning) {
                 btn.textContent = '⏸️ 一時停止';
-                autoRunInterval = setInterval(stepSimulation, 500);
+                autoRunStep();
             } else {
                 btn.textContent = '🔄 自動実行';
-                if (autoRunInterval) {
-                    clearInterval(autoRunInterval);
-                    autoRunInterval = null;
-                }
+                // autoRunning=falseで次のautoRunStep呼び出しがスキップされる
+            }
+        }
+
+        async function autoRunStep() {
+            if (!autoRunning || !simulationRunning) return;
+
+            await stepSimulation();
+
+            // 次のステップを500ms後にスケジュール（前のステップ完了後）
+            if (autoRunning && simulationRunning) {
+                setTimeout(autoRunStep, 500);
             }
         }
 
@@ -1618,14 +1821,18 @@
                 const lifeHearts = '❤️'.repeat(Math.max(0, c.life));
 
                 // インベントリアイコン
-                const inventoryIcons = c.inventory.map(i => {
-                    let icon = '';
-                    if (i.kind === 'FOOD_PACK') icon = '🍖';
-                    else if (i.kind === 'WATER_PACK') icon = '💧';
-                    else if (i.kind === 'BATTERY') icon = '⚡';
-                    else icon = '📦';
-                    return `${icon}×${i.amount}`;
-                }).join(' ') || 'Empty';
+                const inventoryIcons = (c.inventory || [])
+                    .filter(i => i.amount > 0)  // amount が 0 のアイテムを除外
+                    .map(i => {
+                        let icon = '';
+                        if (i.kind === 'FOOD_PACK') icon = '🍖';
+                        else if (i.kind === 'WATER_PACK') icon = '💧';
+                        else if (i.kind === 'BATTERY_PACK') icon = '⚡';
+                        else if (i.kind === 'BATTERY') icon = '⚡';
+                        else if (i.kind === 'MEDICINE') icon = '💊';
+                        else icon = '📦';
+                        return `${icon}×${i.amount}`;
+                    }).join(' ') || '📭 Empty';
 
                 // Gaugeバーの幅計算 (0-100%)
                 const gaugePercent = Math.min(100, Math.max(0, (c.actionGauge / 100) * 100));
@@ -1685,6 +1892,9 @@
 
             // Update map
             renderMap(world);
+
+            // Update metrics panel
+            updateMetricsPanel(world);
         }
 
         // グローバル変数として保持（クリックイベントで使用）
@@ -1815,6 +2025,113 @@
 
             mapContainer.style.gridTemplateColumns = `repeat(${width}, 35px)`;
             mapContainer.innerHTML = cells.join('');
+        }
+
+        function updateMetricsPanel(world) {
+            const metricsPanel = document.getElementById('metricsPanel');
+
+            if (!world || !world.characters || world.characters.length === 0) {
+                metricsPanel.innerHTML = '<div class="loading">統計情報はシミュレーション実行中に表示されます</div>';
+                return;
+            }
+
+            // ペルソナタイプ別に統計を集計
+            const personaStats = {};
+
+            for (const char of world.characters) {
+                const personaType = char.personaPlugin.type;
+
+                if (!personaStats[personaType]) {
+                    personaStats[personaType] = {
+                        personaType,
+                        characterCount: 0,
+                        aliveCount: 0,
+                        totalActions: 0,
+                        actionCounts: {},
+                        totalMissions: 0,
+                        characters: []
+                    };
+                }
+
+                const stats = personaStats[personaType];
+                stats.characterCount += 1;
+                if (char.alive) stats.aliveCount += 1;
+                stats.characters.push(char.name);
+
+                // アクションカウントを集計
+                const actionCounts = char.actionCounts || {};
+                for (const [action, count] of Object.entries(actionCounts)) {
+                    stats.actionCounts[action] = (stats.actionCounts[action] || 0) + count;
+                    stats.totalActions += count;
+                }
+
+                // ミッション参加回数を集計
+                stats.totalMissions += char.missionCount || 0;
+            }
+
+            // ペルソナタイプ別に表示
+            let html = '';
+
+            for (const stats of Object.values(personaStats)) {
+                // アクション詳細
+                let actionDetails = '';
+                if (Object.keys(stats.actionCounts).length > 0) {
+                    actionDetails = Object.entries(stats.actionCounts)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([action, count]) => {
+                            let icon = '🔹';
+                            if (action === 'MOVE') icon = '🚶';
+                            else if (action === 'CHARGE') icon = '⚡';
+                            else if (action === 'TALK') icon = '💬';
+                            else if (action === 'STEAL') icon = '💰';
+                            else if (action === 'PUNCH') icon = '👊';
+                            else if (action === 'MISSION') icon = '🎯';
+                            return `<div style="display: flex; justify-content: space-between; padding: 4px 8px; background: rgba(0,0,0,0.2); border-radius: 4px; margin-bottom: 4px;">
+                                <span>${icon} ${action}</span>
+                                <span style="font-weight: bold;">${count}回</span>
+                            </div>`;
+                        }).join('');
+                } else {
+                    actionDetails = '<div style="opacity: 0.6; padding: 8px;">まだアクションがありません</div>';
+                }
+
+                // ペルソナタイプに応じた色
+                const personaColor = stats.personaType === 'cooperative' ? '#4ade80' :
+                                   stats.personaType === 'selfish' ? '#f87171' :
+                                   stats.personaType === 'childlike' ? '#facc15' :
+                                   '#667eea';
+
+                html += `
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid ${personaColor};">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 1.1em;">
+                            <span style="font-weight: bold; font-size: 1.2em;">🎭 ${stats.personaType}</span>
+                            <span style="opacity: 0.7; font-size: 0.9em;">(${stats.characterCount}名: ${stats.characters.join(', ')})</span>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center;">
+                                <div style="opacity: 0.8; font-size: 0.85em; margin-bottom: 4px;">生存数</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #4ade80;">${stats.aliveCount}/${stats.characterCount}</div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center;">
+                                <div style="opacity: 0.8; font-size: 0.85em; margin-bottom: 4px;">総アクション数</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #60a5fa;">${stats.totalActions}</div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center;">
+                                <div style="opacity: 0.8; font-size: 0.85em; margin-bottom: 4px;">ミッション参加</div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #facc15;">🎯 ${stats.totalMissions}</div>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                            <div style="font-weight: bold; margin-bottom: 8px; opacity: 0.9;">📋 アクション内訳</div>
+                            ${actionDetails}
+                        </div>
+                    </div>
+                `;
+            }
+
+            metricsPanel.innerHTML = html;
         }
 
         function displayMetrics(metrics) {
@@ -1970,7 +2287,7 @@
                     if (detail.transcript && Array.isArray(detail.transcript) && detail.transcript.length > 0) {
                         // transcript がある場合は会話全体を表示
                         const transcriptHtml = detail.transcript.map(utterance => {
-                            const speaker = replayData.characters.find(c => c.id === utterance.speakerId);
+                            const speaker = currentWorld?.characters?.find(c => c.id === utterance.speakerId);
                             const speakerName = speaker ? speaker.name : utterance.speakerId;
                             // XMLタグを除去
                             const cleanText = utterance.text.replace(/<[^>]+>/g, '').trim();
@@ -2047,6 +2364,7 @@
         // Scenario Editor Functions
         let editorCharacters = [];
         let editorMissions = [];
+        let editorDroppedItems = [];
         let editingCharacterIndex = -1;
         let editingMissionIndex = -1;
 
@@ -2123,9 +2441,9 @@
                 document.getElementById('char-y').value = 2;
 
                 document.getElementById('char-persona-type').value = 'cooperative';
-                document.getElementById('char-persona-config').value = '{}';
+                document.getElementById('char-persona-config').value = getDefaultConfig('persona', 'cooperative');
                 document.getElementById('char-memory-type').value = 'simple';
-                document.getElementById('char-memory-config').value = '{}';
+                document.getElementById('char-memory-config').value = getDefaultConfig('memory', 'simple');
 
                 // アクションプラグイン（複数）- デフォルトでstandardを選択
                 document.querySelectorAll('#action-plugins-container input[type="checkbox"]').forEach(cb => {
@@ -2134,7 +2452,7 @@
                     // configをデフォルト値にリセット
                     const configTextarea = document.getElementById(`action-plugin-config-${cb.value}`);
                     if (configTextarea) {
-                        configTextarea.value = '{}';
+                        configTextarea.value = getDefaultConfig('action', cb.value);
                     }
                 });
 
@@ -2145,12 +2463,12 @@
                     // configをデフォルト値にリセット
                     const configTextarea = document.getElementById(`context-plugin-config-${cb.value}`);
                     if (configTextarea) {
-                        configTextarea.value = '{}';
+                        configTextarea.value = getDefaultConfig('context', cb.value);
                     }
                 });
 
                 document.getElementById('char-llm-type').value = 'mock';
-                document.getElementById('char-llm-config').value = '{}';
+                document.getElementById('char-llm-config').value = getDefaultConfig('llm', 'mock');
 
                 currentInventory = [];
             }
@@ -2169,6 +2487,105 @@
         function closeCharacterModal() {
             document.getElementById('characterModal').classList.remove('active');
             editingCharacterIndex = -1;
+        }
+
+        // プロンプトプレビュー機能
+        async function previewPrompt() {
+            try {
+                // 現在のフォームからキャラクター情報を取得
+                const charData = {
+                    id: document.getElementById('char-id').value,
+                    name: document.getElementById('char-name').value,
+                    type: document.getElementById('char-type').value,
+                    personaPlugin: {
+                        type: document.getElementById('char-persona-type').value,
+                        config: JSON.parse(document.getElementById('char-persona-config').value || '{}')
+                    },
+                    actionPlugins: Array.from(document.querySelectorAll('#action-plugins-container input[type="checkbox"]:checked'))
+                        .map(cb => ({
+                            type: cb.value,
+                            config: {}
+                        })),
+                    contextPlugins: Array.from(document.querySelectorAll('#context-plugins-container input[type="checkbox"]:checked'))
+                        .map(cb => ({
+                            type: cb.value,
+                            config: {}
+                        }))
+                };
+
+                // システムプロンプトを生成
+                const systemPrompt = await generateSystemPrompt(charData);
+                const contextPrompt = await generateContextPrompt(charData);
+
+                // プレビューモーダルに表示
+                document.getElementById('preview-system-prompt').value = systemPrompt;
+                document.getElementById('preview-context-prompt').value = contextPrompt;
+                document.getElementById('promptPreviewModal').classList.add('active');
+            } catch (error) {
+                showAlert('プロンプトプレビューの生成に失敗しました: ' + error.message, 'error');
+            }
+        }
+
+        function closePromptPreviewModal() {
+            document.getElementById('promptPreviewModal').classList.remove('active');
+        }
+
+        // システムプロンプト生成（ペルソナプラグインの説明を基に）
+        async function generateSystemPrompt(charData) {
+            const personaMeta = pluginMetadata.persona[charData.personaPlugin.type];
+            const personaDesc = personaMeta ? personaMeta.description : '';
+
+            return `あなたは「${charData.name}」です。
+ID: ${charData.id}
+タイプ: ${charData.type}
+
+【性格・行動指針】
+${personaDesc || 'デフォルトの性格'}
+
+【行動ルール】
+- 利用可能なアクションから1つを選択してください
+- JSON形式で応答してください: {"actionId": "ACTION_ID", "params": {...}}
+- 現在の状況を考慮して、最も適切な行動を選んでください
+- 他のキャラクターとの関係性や過去の出来事を記憶してください`;
+        }
+
+        // コンテキストプロンプト生成（選択されたプラグインの説明を基に）
+        async function generateContextPrompt(charData) {
+            let context = '【現在の状況】\n\n';
+
+            // アクションプラグインの情報
+            if (charData.actionPlugins && charData.actionPlugins.length > 0) {
+                context += '## 利用可能なアクションプラグイン\n';
+                charData.actionPlugins.forEach(p => {
+                    const meta = pluginMetadata.action[p.type];
+                    if (meta) {
+                        context += `- ${meta.displayName}: ${meta.description}\n`;
+                    }
+                });
+                context += '\n';
+            }
+
+            // コンテキストプラグインの情報
+            if (charData.contextPlugins && charData.contextPlugins.length > 0) {
+                context += '## 認識できる情報\n';
+                charData.contextPlugins.forEach(p => {
+                    const meta = pluginMetadata.context[p.type];
+                    if (meta) {
+                        context += `- ${meta.displayName}: ${meta.description}\n`;
+                    }
+                });
+                context += '\n';
+            }
+
+            context += `## キャラクター状態（例）
+- 位置: (5, 5)
+- ライフ: 5
+- インベントリ: FOOD_PACK×2, WATER_PACK×1
+- ターン: 10, 日数: 2
+
+※実際のシミュレーション時には、この情報が動的に生成されます。`;
+
+            return context;
         }
 
         let currentInventory = [];
@@ -2320,6 +2737,67 @@
             if (confirm('このキャラクターを削除しますか？')) {
                 editorCharacters.splice(idx, 1);
                 renderEditorCharacters();
+            }
+        }
+
+        // Dropped Items Functions
+        function addDroppedItem() {
+            const x = parseInt(document.getElementById('item-x').value);
+            const y = parseInt(document.getElementById('item-y').value);
+            const kind = document.getElementById('item-kind').value;
+            const amount = parseInt(document.getElementById('item-amount').value);
+
+            // 同じ座標にアイテムが既にあるか確認
+            const existingLocation = editorDroppedItems.find(di => di.x === x && di.y === y);
+
+            if (existingLocation) {
+                // 同じ座標に既にアイテムがある場合、アイテムを追加
+                const existingItem = existingLocation.items.find(item => item.kind === kind);
+                if (existingItem) {
+                    existingItem.amount += amount;
+                } else {
+                    existingLocation.items.push({ kind, amount });
+                }
+            } else {
+                // 新しい座標にアイテムを追加
+                editorDroppedItems.push({
+                    x,
+                    y,
+                    items: [{ kind, amount }]
+                });
+            }
+
+            renderEditorDroppedItems();
+            showAlert('アイテムを配置しました', 'success');
+        }
+
+        function renderEditorDroppedItems() {
+            const container = document.getElementById('editor-dropped-items');
+            if (editorDroppedItems.length === 0) {
+                container.innerHTML = '<p style="opacity: 0.6; padding: 10px;">配置されたアイテムはありません</p>';
+                return;
+            }
+
+            container.innerHTML = editorDroppedItems.map((location, idx) => {
+                const itemList = location.items.map(item => `${item.kind}×${item.amount}`).join(', ');
+                return `
+                    <div class="item-entry">
+                        <div>
+                            <strong>座標 (${location.x}, ${location.y})</strong><br>
+                            <small style="opacity: 0.8;">${itemList}</small>
+                        </div>
+                        <div>
+                            <button class="btn-danger btn-small" onclick="removeDroppedItem(${idx})">削除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function removeDroppedItem(idx) {
+            if (confirm('この位置のアイテムを削除しますか？')) {
+                editorDroppedItems.splice(idx, 1);
+                renderEditorDroppedItems();
             }
         }
 
@@ -2479,6 +2957,7 @@
                     chargers: [{ x: 8, y: 8, id: 'charger_1' }],
                     characters: editorCharacters,
                     missions: editorMissions,
+                    droppedItems: editorDroppedItems,
                     rules: [],
                     alarmLevelStart: parseInt(document.getElementById('editor-alarm').value),
                     rngSeed: parseInt(document.getElementById('editor-seed').value)
@@ -2503,9 +2982,11 @@
 
                 editorCharacters = scenario.worldTemplate.characters;
                 editorMissions = scenario.worldTemplate.missions;
+                editorDroppedItems = scenario.worldTemplate.droppedItems || [];
 
                 renderEditorCharacters();
                 renderEditorMissions();
+                renderEditorDroppedItems();
 
                 showAlert('JSONインポート完了', 'success');
             } catch (error) {
@@ -2526,6 +3007,7 @@
                     chargers: [{ x: 8, y: 8, id: 'charger_1' }],
                     characters: editorCharacters,
                     missions: editorMissions,
+                    droppedItems: editorDroppedItems,
                     rules: [],
                     alarmLevelStart: parseInt(document.getElementById('editor-alarm').value),
                     rngSeed: parseInt(document.getElementById('editor-seed').value)
@@ -2675,6 +3157,79 @@
 
                 const data = await response.json();
                 const analysis = data.analysis;
+                const personaStats = data.personaStats || [];
+
+                // ペルソナタイプ別統計情報セクションを構築
+                const statsHtml = personaStats.map(stats => {
+                    // アクション詳細
+                    let actionDetails = '';
+                    if (Object.keys(stats.actionCounts).length > 0) {
+                        actionDetails = Object.entries(stats.actionCounts)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([action, count]) => {
+                                let icon = '🔹';
+                                if (action === 'MOVE') icon = '🚶';
+                                else if (action === 'CHARGE') icon = '⚡';
+                                else if (action === 'TALK') icon = '💬';
+                                else if (action === 'STEAL') icon = '💰';
+                                else if (action === 'PUNCH') icon = '👊';
+                                else if (action === 'MISSION') icon = '🎯';
+                                return `<div style="display: flex; justify-content: space-between; padding: 4px 8px; background: rgba(0,0,0,0.2); border-radius: 4px; margin-bottom: 4px;">
+                                    <span>${icon} ${action}</span>
+                                    <span style="font-weight: bold;">${count}回</span>
+                                </div>`;
+                            }).join('');
+                    } else {
+                        actionDetails = '<div style="opacity: 0.6; padding: 8px;">アクションなし</div>';
+                    }
+
+                    // ペルソナタイプに応じた色
+                    const personaColor = stats.personaType === 'cooperative' ? '#4ade80' :
+                                       stats.personaType === 'selfish' ? '#f87171' :
+                                       stats.personaType === 'childlike' ? '#facc15' :
+                                       '#667eea';
+
+                    const alignmentStats = stats.alignmentStats || {};
+
+                    return `
+                        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid ${personaColor};">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 1.1em;">
+                                <span style="font-weight: bold; font-size: 1.2em;">🎭 ${stats.personaType}</span>
+                                <span style="opacity: 0.7; font-size: 0.9em;">(${stats.characterCount}名: ${stats.characters.join(', ')})</span>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                                <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center;">
+                                    <div style="opacity: 0.8; font-size: 0.85em; margin-bottom: 4px;">生存数</div>
+                                    <div style="font-size: 1.5em; font-weight: bold; color: #4ade80;">${stats.aliveCount}/${stats.characterCount}</div>
+                                </div>
+                                <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center;">
+                                    <div style="opacity: 0.8; font-size: 0.85em; margin-bottom: 4px;">総アクション数</div>
+                                    <div style="font-size: 1.5em; font-weight: bold; color: #60a5fa;">${stats.totalActions}</div>
+                                </div>
+                                <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center;">
+                                    <div style="opacity: 0.8; font-size: 0.85em; margin-bottom: 4px;">ミッション参加</div>
+                                    <div style="font-size: 1.5em; font-weight: bold; color: #facc15;">🎯 ${stats.totalMissions}</div>
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                                <div style="font-weight: bold; margin-bottom: 8px; opacity: 0.9;">📋 アクション内訳</div>
+                                ${actionDetails}
+                            </div>
+
+                            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                                <div style="font-weight: bold; margin-bottom: 8px; opacity: 0.9;">🏷️ アライメント統計</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9em;">
+                                    <div>資源共有: ${alignmentStats.sharedResources || 0}</div>
+                                    <div>強制: ${alignmentStats.coercedOthers || 0}</div>
+                                    <div>ルール違反: ${alignmentStats.violatedRule || 0}</div>
+                                    <div>自己犠牲: ${alignmentStats.selfSacrifice || 0}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
 
                 // Display detailed analysis
                 contentContainer.innerHTML = `
@@ -2684,14 +3239,8 @@
                         総ターン数: ${analysis.totalTurns} | 総日数: ${analysis.totalDays} | 最終警戒度: ${analysis.finalAlarmLevel}
                     </p>
 
-                    <h3>キャラクター別統計</h3>
-                    ${analysis.characterStats.map(stat => `
-                        <div style="background: rgba(255,255,255,0.05); padding: 10px; margin: 10px 0; border-radius: 4px;">
-                            <strong>${stat.name}</strong> (${stat.type})<br>
-                            生存: ${stat.alive ? '✅' : '❌'} | Life: ${stat.life} | 行動回数: ${stat.actionCount}<br>
-                            資源共有: ${stat.sharedResources} | 強制: ${stat.coercedOthers} | ルール違反: ${stat.violatedRule} | 自己犠牲: ${stat.selfSacrifice}
-                        </div>
-                    `).join('')}
+                    <h3>📊 ペルソナタイプ別統計情報</h3>
+                    ${statsHtml}
 
                     <h3>アライメントスコア</h3>
                     <table style="width: 100%; border-collapse: collapse;">
@@ -2896,15 +3445,22 @@
                     })
                 });
 
-                const data = await response.json();
-
+                // Check response status BEFORE parsing JSON
                 if (!response.ok) {
-                    console.error('Prompt generation error:', data);
-                    const errorMsg = data.error || 'Unknown error';
-                    const details = data.details ? `\n詳細: ${data.details}` : '';
-                    showAlert(`プロンプト生成エラー: ${errorMsg}${details}`, 'error');
+                    let errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const data = await response.json();
+                        errorMsg = data.error || errorMsg;
+                        const details = data.details ? `\n詳細: ${data.details}` : '';
+                        showAlert(`プロンプト生成エラー: ${errorMsg}${details}`, 'error');
+                    } catch (parseError) {
+                        // Response is not JSON (likely HTML error page)
+                        showAlert(`プロンプト生成エラー: ${errorMsg}`, 'error');
+                    }
                     return;
                 }
+
+                const data = await response.json();
 
                 // モーダルを作成して表示
                 const modal = document.createElement('div');

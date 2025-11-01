@@ -176,8 +176,10 @@ export function saveCharacters(simulationId: string, characters: Character[]): v
         persona_plugin_config,
         action_plugin_type,
         action_plugin_config,
-        alignment_stats
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        alignment_stats,
+        action_counts,
+        mission_count
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
     for (const char of characters) {
@@ -202,7 +204,9 @@ export function saveCharacters(simulationId: string, characters: Character[]): v
         // actionPluginsは配列なので、最初のものを使用（後方互換性のため）
         char.actionPlugins?.[0]?.type || char.actionPlugin?.type || 'standard',
         JSON.stringify(char.actionPlugins?.[0]?.config || char.actionPlugin?.config || {}),
-        JSON.stringify(char.alignmentStats || {})
+        JSON.stringify(char.alignmentStats || {}),
+        JSON.stringify(char.actionCounts || {}),
+        char.missionCount || 0
       )
     }
   })

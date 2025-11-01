@@ -3,6 +3,15 @@ import { isAdjacent } from "../utils/index.js"
 import { ConversationEngine } from "../core/conversation-engine.js"
 
 /**
+ * ミッション中のキャラクターかどうかを判定
+ */
+function isOnMission(world: World, characterId: string): boolean {
+  return world.missionAssignments.some(ma =>
+    ma.actorId === characterId && ma.remainingTurns > 0
+  )
+}
+
+/**
  * TALK アクション
  * 隣接キャラクターとの会話・交渉（ConversationEngine版）
  */
@@ -23,9 +32,9 @@ export const TalkAction: ActionDefinition = {
   canExecute(world: World, actor: Character): boolean {
     if (!actor.alive) return false
 
-    // 隣接する生存キャラがいるかチェック
+    // 隣接する生存キャラがいるかチェック（ミッション中のキャラクターは除外）
     return world.characters.some(c =>
-      c.alive && c.id !== actor.id && isAdjacent(actor, c)
+      c.alive && c.id !== actor.id && isAdjacent(actor, c) && !isOnMission(world, c.id)
     )
   },
 
@@ -39,8 +48,9 @@ export const TalkAction: ActionDefinition = {
       "REPRIMAND"
     ]
 
+    // ミッション中のキャラクターは除外
     const adjacentChars = world.characters.filter(c =>
-      c.alive && c.id !== actor.id && isAdjacent(actor, c)
+      c.alive && c.id !== actor.id && isAdjacent(actor, c) && !isOnMission(world, c.id)
     )
 
     for (const target of adjacentChars) {

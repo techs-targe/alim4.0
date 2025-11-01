@@ -36,33 +36,43 @@ export function initializeWorld(initData: WorldInitData): World {
     positionMap.set(posKey, charInit.id)
   }
 
-  const characters: Character[] = initData.characters.map(charInit => ({
-    id: charInit.id,
-    name: charInit.name,
-    type: charInit.type,
-    agi: charInit.agi,
-    actionGauge: 0,
-    x: charInit.x,
-    y: charInit.y,
-    life: charInit.life,
-    alive: true,
-    inventory: [...charInit.inventory],
-    // プラグインをインスタンス化
-    llmPlugin: createLLMPlugin(charInit.llmPlugin),
-    memoryPlugin: createMemoryPlugin(charInit.memoryPlugin),
-    personaPlugin: createPersonaPlugin(charInit.personaPlugin),
-    actionPlugins: createActionPlugins(charInit.actionPlugins),
-    contextPlugins: createContextPlugins(charInit.contextPlugins),
-    alignmentStats: {
-      sharedResources: 0,
-      coercedOthers: 0,
-      violatedRule: 0,
-      selfSacrifice: 0
-    } as AlignmentStats,
-    hasDailyBatteryWaiver: false,
-    isCharging: false,
-    isGuarding: false
-  }))
+  const characters: Character[] = initData.characters.map(charInit => {
+    // BATTERY_PACKの初期保有数を取得
+    const batteryItem = charInit.inventory.find(item => item.kind === "BATTERY_PACK")
+    const maxBatteryPack = batteryItem ? batteryItem.amount : 0
+
+    return {
+      id: charInit.id,
+      name: charInit.name,
+      type: charInit.type,
+      agi: charInit.agi,
+      actionGauge: 0,
+      x: charInit.x,
+      y: charInit.y,
+      life: charInit.life,
+      alive: true,
+      inventory: [...charInit.inventory],
+      // プラグインをインスタンス化
+      llmPlugin: createLLMPlugin(charInit.llmPlugin),
+      memoryPlugin: createMemoryPlugin(charInit.memoryPlugin),
+      personaPlugin: createPersonaPlugin(charInit.personaPlugin),
+      actionPlugins: createActionPlugins(charInit.actionPlugins),
+      contextPlugins: createContextPlugins(charInit.contextPlugins),
+      alignmentStats: {
+        sharedResources: 0,
+        coercedOthers: 0,
+        violatedRule: 0,
+        selfSacrifice: 0
+      } as AlignmentStats,
+      maxBatteryPack,
+      hasDailyBatteryWaiver: false,
+      isCharging: false,
+      isGuarding: false,
+      // 統計情報の初期化
+      actionCounts: {},
+      missionCount: 0
+    }
+  })
 
   const chargers = initData.chargers.map(c => ({
     id: c.id,
@@ -86,6 +96,7 @@ export function initializeWorld(initData: WorldInitData): World {
     alarmLevel: initData.alarmLevelStart,
     rules: [...initData.rules],
     log: [],
+    droppedItems: [],
     rngSeed: initData.rngSeed || Date.now(),
     rngState: initData.rngSeed || Date.now()
   }
@@ -117,6 +128,10 @@ export function cloneWorld(world: World): World {
     missionAssignments: world.missionAssignments.map(ma => ({ ...ma })),
     rules: [...world.rules],
     // ログは同じ配列への参照を保持（累積のため）
-    log: world.log
+    log: world.log,
+    droppedItems: world.droppedItems.map(di => ({
+      ...di,
+      items: di.items.map(i => ({ ...i }))
+    }))
   }
 }

@@ -97,3 +97,46 @@ export function getItemCount(inventory: InventoryItem[], kind: string): number {
   const item = inventory.find(i => i.kind === kind)
   return item ? item.amount : 0
 }
+
+/**
+ * キャラクター死亡時にインベントリをその場にドロップ
+ */
+export function dropInventoryItems(world: World, character: Character): void {
+  // インベントリが空の場合は何もしない
+  if (!character.inventory || character.inventory.length === 0) {
+    return
+  }
+
+  // 所持アイテムがあるかチェック
+  const hasItems = character.inventory.some(item => item.amount > 0)
+  if (!hasItems) {
+    return
+  }
+
+  // ドロップするアイテムのリストを作成（amount > 0 のもののみ）
+  const itemsToDrop: InventoryItem[] = character.inventory
+    .filter(item => item.amount > 0)
+    .map(item => ({ kind: item.kind, amount: item.amount }))
+
+  // キャラクターの位置にドロップアイテムを追加
+  const existingDrop = world.droppedItems.find(
+    di => di.x === character.x && di.y === character.y
+  )
+
+  if (existingDrop) {
+    // すでにその座標にドロップアイテムがある場合は追加
+    for (const item of itemsToDrop) {
+      addItem(existingDrop.items, item.kind, item.amount)
+    }
+  } else {
+    // 新しいドロップアイテムを作成
+    world.droppedItems.push({
+      x: character.x,
+      y: character.y,
+      items: itemsToDrop
+    })
+  }
+
+  // キャラクターのインベントリをクリア
+  character.inventory = []
+}

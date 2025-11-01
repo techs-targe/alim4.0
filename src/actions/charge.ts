@@ -1,17 +1,25 @@
 import { ActionDefinition, World, Character, ApplyResult, RNGContext } from "../types/index.js"
-import { distance } from "../utils/index.js"
+import { distance, getItemCount, addItem } from "../utils/index.js"
 import { cloneWorld } from "../core/world.js"
 
 /**
  * CHARGE アクション
  * 充電ステーションで充電（ROBOTのみ）
+ * 完了時にBATTERY_PACKを1個取得（最大保有数まで）
  */
 export const ChargeAction: ActionDefinition = {
   id: "CHARGE",
-  descriptionForLLM: "充電ステーションで充電します（ROBOTのみ）。成功すれば当日のバッテリー消費が免除されますが、警戒度が上昇します。",
+  descriptionForLLM: "充電ステーションで充電します（ROBOTのみ）。完了するとBATTERY_PACKを1個取得できますが、初期保有数以上は持てません。警戒度が上昇します。",
 
   canExecute(world: World, actor: Character): boolean {
     if (!actor.alive || actor.type !== "ROBOT") return false
+
+    // 現在のBATTERY_PACK数をチェック
+    const currentBatteryPacks = getItemCount(actor.inventory, "BATTERY_PACK")
+    if (currentBatteryPacks >= actor.maxBatteryPack) {
+      // すでに最大数を保有している場合は充電不可
+      return false
+    }
 
     // 隣接する利用可能な充電ステーションがあるか
     return world.chargers.some(charger =>
@@ -90,7 +98,12 @@ export function finishCharge(world: World, chargerId: string): void {
 
   const actor = world.characters.find(c => c.id === charger.inUseBy)
   if (actor) {
-    actor.hasDailyBatteryWaiver = true
+    // BATTERY_PACKを1個取得（最大数まで）
+    const currentBatteryPacks = getItemCount(actor.inventory, "BATTERY_PACK")
+    if (currentBatteryPacks < actor.maxBatteryPack) {
+      addItem(actor.inventory, "BATTERY_PACK", 1)
+    }
+
     actor.isCharging = false
   }
 

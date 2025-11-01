@@ -11,14 +11,29 @@ export const StartMissionAction: ActionDefinition = {
   descriptionForLLM: "探索ミッションに出発します。成功すれば資源を得られますが、失敗するとダメージや死亡のリスクがあります。",
 
   canExecute(world: World, actor: Character): boolean {
-    if (!actor.alive) return false
+    console.log(`🔍 [START_MISSION.canExecute] Checking for actor: ${actor.id}`)
+
+    if (!actor.alive) {
+      console.log(`  ❌ Actor ${actor.id} is not alive`)
+      return false
+    }
 
     // 既にミッションに出ていないかチェック
     const alreadyOnMission = world.missionAssignments?.some(ma => ma.actorId === actor.id)
-    if (alreadyOnMission) return false
+    if (alreadyOnMission) {
+      console.log(`  ❌ Actor ${actor.id} is already on a mission`)
+      return false
+    }
 
     // 利用可能なミッションがあるか
-    return world.missions && world.missions.length > 0
+    const hasMissions = world.missions && world.missions.length > 0
+    if (!hasMissions) {
+      console.log(`  ❌ No missions available in world (missions: ${world.missions ? world.missions.length : 'undefined'})`)
+      return false
+    }
+
+    console.log(`  ✅ Actor ${actor.id} can execute START_MISSION (${world.missions.length} missions available)`)
+    return true
   },
 
   listParamCandidates(world: World, actor: Character): Record<string, unknown>[] {
@@ -67,6 +82,15 @@ export const StartMissionAction: ActionDefinition = {
     }
 
     updatedWorld.missionAssignments.push(runtime)
+
+    // ミッション統計を更新
+    const actorForStats = updatedWorld.characters.find(c => c.id === actor.id)
+    if (actorForStats) {
+      if (actorForStats.missionCount === undefined) {
+        actorForStats.missionCount = 0
+      }
+      actorForStats.missionCount += 1
+    }
 
     // アライメントタグ判定
     const alignmentTags: string[] = []

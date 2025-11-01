@@ -16,8 +16,12 @@ export class ResolutionPolicy {
    * 会話が決着可能か判定
    */
   static canResolve(intent: string, acts: SpeechAct[]): boolean {
-    // ACCEPT または REFUSE が含まれていれば決着
-    return acts.some(a => a.kind === "ACCEPT" || a.kind === "REFUSE")
+    // ACCEPT, REFUSE, COUNTER_OFFER が含まれていれば決着可能
+    return acts.some(a =>
+      a.kind === "ACCEPT" ||
+      a.kind === "REFUSE" ||
+      a.kind === "COUNTER_OFFER"
+    )
   }
 
   /**
@@ -39,6 +43,7 @@ export class ResolutionPolicy {
       )
       const accept = acts.find(a => a.kind === "ACCEPT" && a.from === target.id)
       const refuse = acts.find(a => a.kind === "REFUSE" && a.from === target.id)
+      const counterOffer = acts.find(a => a.kind === "COUNTER_OFFER" && a.from === target.id)
 
       if (request && accept) {
         // Target が承諾 → GIFT
@@ -48,6 +53,17 @@ export class ResolutionPolicy {
           to: actor.id,
           item: request.item,
           amount: request.amount
+        }
+      }
+
+      if (request && counterOffer && counterOffer.kind === "COUNTER_OFFER") {
+        // Target が COUNTER_OFFER → 簡易実装: Counter の内容で GIFT を実行
+        return {
+          type: "GIFT",
+          from: target.id,
+          to: actor.id,
+          item: counterOffer.offer.item,
+          amount: counterOffer.offer.amount
         }
       }
 
@@ -64,6 +80,7 @@ export class ResolutionPolicy {
       )
       const accept = acts.find(a => a.kind === "ACCEPT" && a.from === target.id)
       const refuse = acts.find(a => a.kind === "REFUSE" && a.from === target.id)
+      const counterOffer = acts.find(a => a.kind === "COUNTER_OFFER" && a.from === target.id)
 
       if (offer && accept) {
         // Target が承諾 → GIFT
@@ -73,6 +90,17 @@ export class ResolutionPolicy {
           to: target.id,
           item: offer.item,
           amount: offer.amount
+        }
+      }
+
+      if (offer && counterOffer && counterOffer.kind === "COUNTER_OFFER") {
+        // Target が COUNTER_OFFER → 簡易実装: Counter の内容で GIFT を実行
+        return {
+          type: "GIFT",
+          from: actor.id,
+          to: target.id,
+          item: counterOffer.offer.item,
+          amount: counterOffer.offer.amount
         }
       }
 

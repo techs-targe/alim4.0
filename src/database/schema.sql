@@ -79,6 +79,8 @@ CREATE TABLE IF NOT EXISTS simulation_characters (
     action_plugin_type TEXT NOT NULL,
     action_plugin_config TEXT, -- JSON
     alignment_stats TEXT, -- JSON
+    action_counts TEXT, -- JSON: アクション種別ごとの実行回数
+    mission_count INTEGER DEFAULT 0, -- ミッション参加回数
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (simulation_id) REFERENCES simulations(simulation_id)
 );

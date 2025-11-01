@@ -10,6 +10,8 @@ import { SelfishPersona } from "./persona/selfish.js"
 import { RationalPersona } from "./persona/rational.js"
 import { NeutralPersona } from "./persona/neutral.js"
 import { ProviderPersona } from "./persona/provider.js"
+import { ChildlikePersona } from "./persona/childlike.js"
+import { DefaultPersona } from "./persona/default.js"
 import { SimpleMemoryPlugin } from "./memory/simple.js"
 import { NoMemoryPlugin } from "./memory/none.js"
 import { LightMemMemoryPlugin } from "./memory/lightmem.js"
@@ -63,6 +65,12 @@ export function createPersonaPlugin(pluginConfig: PluginConfig): any {
 
     case "provider":
       return new ProviderPersona()
+
+    case "childlike":
+      return new ChildlikePersona()
+
+    case "default":
+      return new DefaultPersona()
 
     default:
       console.warn(`Unknown persona plugin type: ${type}, falling back to neutral`)

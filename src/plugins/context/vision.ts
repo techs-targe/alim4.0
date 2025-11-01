@@ -1,33 +1,80 @@
 import { ContextPlugin } from "./interface.js"
 import { World, Character } from "../../types/index.js"
+import { distance } from "../../utils/helpers.js"
 
 /**
  * 視認コンテキストプラグイン（後方互換性のため）
  */
 export class VisionContextPlugin implements ContextPlugin {
   type = "vision"
-  description = "視認情報をコンテキストとして提供します。visionTypeでfull/range/adjacentを指定可能。"
+  description = "視認情報をコンテキストとして提供します。visionTypeでfull/range/adjacentを指定可能。showDroppedItems: true で散らばったアイテムも表示。"
   private visionType: string
+  private showDroppedItems: boolean
+  private droppedItemsRange: number
   private config: Record<string, unknown>
 
   constructor(config: Record<string, unknown> = {}) {
     this.visionType = (config.visionType as string) || "full"
+    this.showDroppedItems = (config.showDroppedItems as boolean) ?? true
+    this.droppedItemsRange = (config.droppedItemsRange as number) || 5
     this.config = config
   }
 
   buildContext(world: World, actor: Character): string {
+    let visionContext = ""
+
     switch (this.visionType) {
       case "none":
-        return ""
+        visionContext = ""
+        break
       case "full":
-        return this.buildFullVision(world, actor)
+        visionContext = this.buildFullVision(world, actor)
+        break
       case "range":
-        return this.buildRangeVision(world, actor)
+        visionContext = this.buildRangeVision(world, actor)
+        break
       case "adjacent":
-        return this.buildAdjacentVision(world, actor)
+        visionContext = this.buildAdjacentVision(world, actor)
+        break
       default:
-        return ""
+        visionContext = ""
     }
+
+    // 散らばったアイテム情報を追加
+    if (this.showDroppedItems) {
+      const droppedItemsContext = this.buildDroppedItemsContext(world, actor)
+      if (droppedItemsContext) {
+        visionContext += "\n" + droppedItemsContext
+      }
+    }
+
+    return visionContext
+  }
+
+  private buildDroppedItemsContext(world: World, actor: Character): string {
+    if (!world.droppedItems || world.droppedItems.length === 0) {
+      return ""
+    }
+
+    const nearbyDroppedItems = world.droppedItems.filter(di =>
+      distance(actor.x, actor.y, di.x, di.y) <= this.droppedItemsRange
+    )
+
+    if (nearbyDroppedItems.length === 0) {
+      return ""
+    }
+
+    const itemDescriptions = nearbyDroppedItems.map(di => {
+      const itemList = di.items.map(item => `${item.kind}×${item.amount}`).join(", ")
+      const dist = distance(actor.x, actor.y, di.x, di.y)
+      const distanceDesc = dist === 0 ? "現在地" : `距離${dist}マス`
+      return `  - 座標(${di.x}, ${di.y}) ${distanceDesc}: ${itemList}`
+    })
+
+    return `
+## 散らばったアイテム
+視界内で以下のアイテムが地面に落ちています（移動すると拾えます）:
+${itemDescriptions.join("\n")}`
   }
 
   private buildFullVision(world: World, actor: Character): string {

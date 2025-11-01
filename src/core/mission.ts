@@ -1,6 +1,6 @@
 import { World, LogEntry, MissionCard } from "../types/index.js"
 import { SeededRNG } from "../utils/rng.js"
-import { addItem } from "../utils/helpers.js"
+import { addItem, dropInventoryItems } from "../utils/helpers.js"
 import { SurvivalBoostActionPlugin } from "../plugins/action.js"
 
 /**
@@ -70,6 +70,8 @@ function resolveMissionReturn(
     const deathRoll = rng.next()
     if (deathRoll <= mission.failure.deathProbability) {
       actor.alive = false
+      // インベントリをドロップ
+      dropInventoryItems(world, actor)
       outcome = "DEAD"
     } else {
       outcome = "FAIL"

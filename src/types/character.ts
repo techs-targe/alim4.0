@@ -92,8 +92,13 @@ export interface Character {
   socialRequests?: SocialRequest[]  // 他者からの要求・提案
 
   // 充電関連
+  maxBatteryPack: number           // BATTERY_PACKの最大保有数（初期保有数と同じ）
   hasDailyBatteryWaiver?: boolean  // その日の日次維持コストBATTERYを免除されているか
   isCharging?: boolean             // 現在充電中か
   isGuarding?: boolean             // 現在護衛中か
   guardingTargetId?: string        // 護衛対象のキャラID
+
+  // 統計情報
+  actionCounts?: Record<string, number>  // アクション種別ごとの実行回数
+  missionCount?: number                   // ミッション参加回数
 }

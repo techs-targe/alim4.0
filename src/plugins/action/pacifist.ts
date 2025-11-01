@@ -9,7 +9,7 @@ export class PacifistActionPlugin implements ActionPlugin {
   type = "pacifist"
   description = "脅迫や強制的な手段を使用できません。TALKでのTHREATEN（脅迫）が制限されます。協力的なシナリオ向け。"
 
-  private excludedActions = new Set(["THREATEN", "COERCE", "STEAL"])
+  private excludedActions = new Set(["THREATEN", "COERCE", "STEAL", "PUNCH"])
 
   listActions(
     world: World,

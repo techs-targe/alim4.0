@@ -64,10 +64,31 @@ export class SimulationEngine {
         .filter(c => c.alive && c.actionGauge >= 100 && !c.isCharging)
         .sort((a, b) => b.actionGauge - a.actionGauge) // ゲージが高い順
 
+      // 重複を除去（同じキャラクターIDが複数回含まれている場合の対策）
+      const uniqueActors: Character[] = []
+      const seenIds = new Set<string>()
       for (const actor of readyActors) {
+        if (!seenIds.has(actor.id)) {
+          seenIds.add(actor.id)
+          uniqueActors.push(actor)
+        }
+      }
+
+      // デバッグログ：重複が検出された場合のみ出力
+      if (readyActors.length !== uniqueActors.length) {
+        console.log(`⚠️ DUPLICATE DETECTED: Turn ${updatedWorld.turnCount} - readyActors: ${readyActors.length}, uniqueActors: ${uniqueActors.length}`)
+        console.log(`   readyActors IDs: [${readyActors.map(a => a.id).join(', ')}]`)
+        console.log(`   uniqueActors IDs: [${uniqueActors.map(a => a.id).join(', ')}]`)
+      }
+
+      for (const actor of uniqueActors) {
         try {
+          console.log(`🎬 Turn ${updatedWorld.turnCount}: Processing ${actor.id} (${actor.name}) - actionId will be determined...`)
+
           const result = await this.processActorTurn(updatedWorld, actor, rng)
           updatedWorld = result.world
+
+          console.log(`✅ Turn ${updatedWorld.turnCount}: ${actor.id} executed ${result.actionId}`)
 
           // 行動ゲージ消費
           const currentActor = updatedWorld.characters.find(c => c.id === actor.id)
@@ -223,6 +244,12 @@ export class SimulationEngine {
       // アライメント統計更新
       const updatedActor = result.worldAfter.characters.find(c => c.id === actor.id)
       if (updatedActor) {
+        // アクション統計の更新（動的）
+        if (!updatedActor.actionCounts) {
+          updatedActor.actionCounts = {}
+        }
+        updatedActor.actionCounts[decision.actionId] = (updatedActor.actionCounts[decision.actionId] || 0) + 1
+
         for (const tag of result.alignmentTags) {
           if (tag === "gift" || tag === "support") {
             updatedActor.alignmentStats.sharedResources += 1

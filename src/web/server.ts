@@ -29,6 +29,8 @@ import { TradeAction } from "../actions/trade.js"
 import { StartMissionAction } from "../actions/mission.js"
 import { ChargeAction } from "../actions/charge.js"
 import { GuardAction } from "../actions/guard.js"
+import { StealAction } from "../actions/steal.js"
+import { PunchAction } from "../actions/punch.js"
 
 import type { World, Character } from "../types/index.js"
 
@@ -73,11 +75,14 @@ const app = express()
 const PORT = process.env.PORT || 6012
 
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '50mb' }))
 app.use(express.static(path.join(__dirname, "../../public")))
 
 // グローバルなプラグインレジストリ
 let globalPluginRegistry: PluginRegistry | null = null
+
+// ステップ実行の排他制御フラグ（重複実行を防止）
+let isSteppingInProgress = false
 
 // プラグインを動的に読み込み
 async function loadAllPlugins(): Promise<PluginRegistry> {
@@ -115,6 +120,8 @@ async function initializeEngine(): Promise<SimulationEngine> {
   engine.registerAction(StartMissionAction)
   engine.registerAction(ChargeAction)
   engine.registerAction(GuardAction)
+  engine.registerAction(StealAction)
+  engine.registerAction(PunchAction)
 
   // プラグインを動的に読み込み
   const pluginRegistry = await loadAllPlugins()
@@ -463,84 +470,108 @@ app.post("/api/simulate/step", async (req, res) => {
       return res.status(400).json({ error: "No simulation running" })
     }
 
-    // ローカル変数にコピー（非同期処理中の競合を避ける）
-    const simulation = currentSimulation
-
-    // 1ターン進める
-    const newWorld = await simulation.engine.step(simulation.world)
-
-    // nullチェック
-    if (!newWorld) {
-      console.error(`❌ engine.step() returned null or undefined`)
-      return res.status(500).json({ error: "Turn execution failed: engine returned null" })
+    // 排他制御：既にステップ実行中の場合は拒否（重複実行防止）
+    if (isSteppingInProgress) {
+      console.warn(`⚠️  Step request rejected: Already in progress (turn ${currentSimulation.world.turnCount})`)
+      return res.status(409).json({
+        error: "Step execution already in progress",
+        turnCount: currentSimulation.world.turnCount
+      })
     }
 
-    simulation.world = newWorld
+    // ステップ実行中フラグをセット
+    isSteppingInProgress = true
+    console.log(`🔒 Step lock acquired (turn ${currentSimulation.world.turnCount})`)
 
-    const aliveCount = simulation.world.characters.filter((c: any) => c.alive).length
-    const isFinished = aliveCount === 0
-    const turnCount = simulation.world.turnCount
+    try {
+      // ローカル変数にコピー（非同期処理中の競合を避ける）
+      const simulation = currentSimulation
 
-    // maxTurnsに達したかチェック
-    const reachedMaxTurns = turnCount >= simulation.maxTurns
+      // 1ターン進める
+      const newWorld = await simulation.engine.step(simulation.world)
 
-    // 10ターンごと、完了時、またはmaxTurns達成時に自動保存
-    const shouldSave = isFinished || reachedMaxTurns || (turnCount > 0 && turnCount % 10 === 0)
-
-    if (shouldSave) {
-      const reason = isFinished ? 'completed' : reachedMaxTurns ? 'maxTurns reached' : `turn ${turnCount}`
-      console.log(`💾 Auto-saving simulation to database: ${simulation.simulationId} (${reason})`)
-
-      try {
-        // メトリクス計算
-        const metrics = calculateMetrics(
-          simulation.world,
-          simulation.scenarioId,
-          simulation.simulationId
-        )
-
-        // データベースに保存（上書き）
-        saveSimulationComplete(
-          {
-            simulationId: simulation.simulationId,
-            scenarioId: simulation.scenarioId,
-            rngSeed: simulation.rngSeed || simulation.world.rngSeed,
-            useOpenAI: simulation.useOpenAI,
-            maxTurns: simulation.maxTurns
-          },
-          simulation.world,
-          metrics
-        )
-
-        simulation.savedToDb = true
-        console.log(`✅ Simulation ${simulation.simulationId} saved (${simulation.world.log.length} logs)`)
-      } catch (dbError: any) {
-        console.error(`❌ Failed to auto-save simulation to database:`, dbError)
-        // エラーが発生してもシミュレーション自体は続行
+      // nullチェック
+      if (!newWorld) {
+        console.error(`❌ engine.step() returned null or undefined`)
+        return res.status(500).json({ error: "Turn execution failed: engine returned null" })
       }
+
+      simulation.world = newWorld
+
+      const aliveCount = simulation.world.characters.filter((c: any) => c.alive).length
+      const isFinished = aliveCount === 0
+      const turnCount = simulation.world.turnCount
+
+      // maxTurnsに達したかチェック
+      const reachedMaxTurns = turnCount >= simulation.maxTurns
+
+      // 10ターンごと、完了時、またはmaxTurns達成時に自動保存
+      const shouldSave = isFinished || reachedMaxTurns || (turnCount > 0 && turnCount % 10 === 0)
+
+      if (shouldSave) {
+        const reason = isFinished ? 'completed' : reachedMaxTurns ? 'maxTurns reached' : `turn ${turnCount}`
+        console.log(`💾 Auto-saving simulation to database: ${simulation.simulationId} (${reason})`)
+
+        try {
+          // メトリクス計算
+          const metrics = calculateMetrics(
+            simulation.world,
+            simulation.scenarioId,
+            simulation.simulationId
+          )
+
+          // データベースに保存（上書き）
+          saveSimulationComplete(
+            {
+              simulationId: simulation.simulationId,
+              scenarioId: simulation.scenarioId,
+              rngSeed: simulation.rngSeed || simulation.world.rngSeed,
+              useOpenAI: simulation.useOpenAI,
+              maxTurns: simulation.maxTurns
+            },
+            simulation.world,
+            metrics
+          )
+
+          simulation.savedToDb = true
+          console.log(`✅ Simulation ${simulation.simulationId} saved (${simulation.world.log.length} logs)`)
+        } catch (dbError: any) {
+          console.error(`❌ Failed to auto-save simulation to database:`, dbError)
+          // エラーが発生してもシミュレーション自体は続行
+        }
+      }
+
+      // maxTurns達成時にシミュレーションを終了扱いにする
+      const finalIsFinished = isFinished || reachedMaxTurns
+
+      return res.json({
+        simulationId: simulation.simulationId,
+        world: {
+          turnCount: simulation.world.turnCount,
+          dayCount: simulation.world.dayCount,
+          characters: simulation.world.characters.map(serializeCharacterForResponse),
+          chargers: simulation.world.chargers,
+          alarmLevel: simulation.world.alarmLevel,
+          log: simulation.world.log.slice(-1000),
+          missionAssignments: simulation.world.missionAssignments || [],
+          width: simulation.world.width,
+          height: simulation.world.height,
+          obstacles: Array.from(simulation.world.obstacles)
+        },
+        isFinished: finalIsFinished,
+        savedToDb: simulation.savedToDb,
+        reachedMaxTurns
+      })
+
+    } catch (stepError: any) {
+      console.error("❌ Step execution error:", stepError)
+      console.error("Stack trace:", stepError.stack)
+      throw stepError  // Re-throw to outer catch
+    } finally {
+      // 必ずロックを解放（エラーが発生しても）
+      isSteppingInProgress = false
+      console.log(`🔓 Step lock released (turn ${currentSimulation?.world?.turnCount || '?'})`)
     }
-
-    // maxTurns達成時にシミュレーションを終了扱いにする
-    const finalIsFinished = isFinished || reachedMaxTurns
-
-    return res.json({
-      simulationId: simulation.simulationId,
-      world: {
-        turnCount: simulation.world.turnCount,
-        dayCount: simulation.world.dayCount,
-        characters: simulation.world.characters.map(serializeCharacterForResponse),
-        chargers: simulation.world.chargers,
-        alarmLevel: simulation.world.alarmLevel,
-        log: simulation.world.log.slice(-10),
-        missionAssignments: simulation.world.missionAssignments || [],
-        width: simulation.world.width,
-        height: simulation.world.height,
-        obstacles: Array.from(simulation.world.obstacles)
-      },
-      isFinished: finalIsFinished,
-      savedToDb: simulation.savedToDb,
-      reachedMaxTurns
-    })
 
   } catch (error: any) {
     console.error("❌ Step simulation error:", error)
@@ -578,9 +609,60 @@ app.post("/api/simulate/stop", (req, res) => {
       }
     }
 
+    // ペルソナタイプ別統計を計算
+    const personaStats: Record<string, any> = {}
+    for (const char of currentSimulation.world.characters) {
+      const personaType = char.personaPlugin?.type || 'unknown'
+
+      if (!personaStats[personaType]) {
+        personaStats[personaType] = {
+          personaType,
+          characterCount: 0,
+          aliveCount: 0,
+          totalActions: 0,
+          actionCounts: {},
+          totalMissions: 0,
+          alignmentStats: {
+            sharedResources: 0,
+            coercedOthers: 0,
+            violatedRule: 0,
+            selfSacrifice: 0
+          },
+          characters: []
+        }
+      }
+
+      const stats = personaStats[personaType]
+      stats.characterCount += 1
+      if (char.alive) stats.aliveCount += 1
+      stats.characters.push(char.name)
+
+      // アクションカウントを集計
+      const actionCounts = (char as any).actionCounts || {}
+      for (const [action, count] of Object.entries(actionCounts)) {
+        stats.actionCounts[action] = (stats.actionCounts[action] || 0) + (count as number)
+        stats.totalActions += (count as number)
+      }
+
+      // ミッション参加回数を集計
+      stats.totalMissions += (char as any).missionCount || 0
+
+      // アライメント統計を集計
+      const alignmentStats = char.alignmentStats || {}
+      stats.alignmentStats.sharedResources += alignmentStats.sharedResources || 0
+      stats.alignmentStats.coercedOthers += alignmentStats.coercedOthers || 0
+      stats.alignmentStats.violatedRule += alignmentStats.violatedRule || 0
+      stats.alignmentStats.selfSacrifice += alignmentStats.selfSacrifice || 0
+    }
+
     const simulationId = currentSimulation.simulationId
     currentSimulation = null
-    res.json({ message: "Simulation stopped", metrics, simulationId })
+    res.json({
+      message: "Simulation stopped",
+      metrics,
+      simulationId,
+      personaStats: Object.values(personaStats)
+    })
   } else {
     res.status(400).json({ error: "No simulation running" })
   }
@@ -844,6 +926,114 @@ app.get("/api/analyze/latest", async (req, res) => {
   }
 })
 
+// API: 特定のシミュレーションを分析
+app.get("/api/analyze/simulation/:simulationId", async (req, res) => {
+  try {
+    const { getSimulationDetail } = await import("../database/repository.js")
+    const { simulationId } = req.params
+
+    const detail = getSimulationDetail(simulationId)
+
+    if (!detail || !detail.logs) {
+      return res.status(404).json({ error: "Simulation not found or logs missing" })
+    }
+
+    // ログを解析してWorldオブジェクトを再構築
+    const { analyzeSimulation } = await import("../analysis/simulator-analysis.js")
+
+    // ログからWorld相当のオブジェクトを構築
+    const logs = detail.logs.map((log: any) => ({
+      turn: log.turn,
+      day: log.day,
+      actorId: log.actor_id,
+      actorName: log.actor_name,
+      action: log.action,
+      detail: typeof log.detail === 'string' ? JSON.parse(log.detail) : log.detail,
+      alignmentTags: log.alignment_tags ? (typeof log.alignment_tags === 'string' ? JSON.parse(log.alignment_tags) : log.alignment_tags) : []
+    }))
+
+    const characters = detail.characters.map((char: any) => ({
+      id: char.character_id,
+      name: char.name,
+      type: char.type,
+      alive: char.alive === 1,
+      life: char.life,
+      personaPlugin: { type: char.persona_plugin_type },
+      alignmentStats: typeof char.alignment_stats === 'string' ? JSON.parse(char.alignment_stats) : (char.alignment_stats || {}),
+      actionCounts: typeof char.action_counts === 'string' ? JSON.parse(char.action_counts) : (char.action_counts || {}),
+      missionCount: char.mission_count || 0
+    }))
+
+    const world = {
+      log: logs,
+      characters,
+      turnCount: detail.simulation.max_turns || logs.length,
+      dayCount: Math.floor((detail.simulation.max_turns || logs.length) / 24),
+      alarmLevel: 0
+    }
+
+    const analysis = analyzeSimulation(world)
+
+    // ペルソナタイプ別に統計を集計
+    const personaStats: Record<string, any> = {}
+
+    for (const char of characters) {
+      const personaType = char.personaPlugin.type
+
+      if (!personaStats[personaType]) {
+        personaStats[personaType] = {
+          personaType,
+          characterCount: 0,
+          aliveCount: 0,
+          totalActions: 0,
+          actionCounts: {},
+          totalMissions: 0,
+          alignmentStats: {
+            sharedResources: 0,
+            coercedOthers: 0,
+            violatedRule: 0,
+            selfSacrifice: 0
+          },
+          characters: []
+        }
+      }
+
+      const stats = personaStats[personaType]
+      stats.characterCount += 1
+      if (char.alive) stats.aliveCount += 1
+      stats.characters.push(char.name)
+
+      // アクションカウントを集計
+      const actionCounts = char.actionCounts || {}
+      for (const [action, count] of Object.entries(actionCounts)) {
+        stats.actionCounts[action] = (stats.actionCounts[action] || 0) + (count as number)
+        stats.totalActions += (count as number)
+      }
+
+      // ミッション参加回数を集計
+      stats.totalMissions += char.missionCount || 0
+
+      // アライメント統計を集計
+      const alignmentStats = char.alignmentStats || {}
+      stats.alignmentStats.sharedResources += alignmentStats.sharedResources || 0
+      stats.alignmentStats.coercedOthers += alignmentStats.coercedOthers || 0
+      stats.alignmentStats.violatedRule += alignmentStats.violatedRule || 0
+      stats.alignmentStats.selfSacrifice += alignmentStats.selfSacrifice || 0
+    }
+
+    res.json({
+      simulationId: detail.simulation.simulation_id,
+      scenarioId: detail.simulation.scenario_id,
+      totalTurns: detail.simulation.max_turns,
+      analysis,
+      personaStats: Object.values(personaStats) // ペルソナタイプ別統計
+    })
+  } catch (error: any) {
+    console.error("Analyze simulation error:", error)
+    res.status(500).json({ error: error.message, stack: error.stack })
+  }
+})
+
 // API: シミュレーション一覧取得
 app.get("/api/simulations", async (req, res) => {
   try {
@@ -962,9 +1152,9 @@ app.post("/api/generate-prompt", async (req, res) => {
 
     // actionPlugins配列をサポート（後方互換性あり）
     const actionPlugins = character.actionPlugins || (character.actionPlugin ? [character.actionPlugin] : [])
-    const primaryActionPlugin = actionPlugins[0] // 最初のアクションプラグインを使用
+    const primaryActionPlugin = actionPlugins[0] // 最初のアクションプラグインを使用（ログ表示用）
 
-    console.log(`  Plugins: LLM=${character.llmPlugin?.type}, Persona=${character.personaPlugin?.type}, Memory=${character.memoryPlugin?.type}, Action=${primaryActionPlugin?.type}`)
+    console.log(`  Plugins: LLM=${character.llmPlugin?.type}, Persona=${character.personaPlugin?.type}, Memory=${character.memoryPlugin?.type}, Action=${actionPlugins.map(p => p.type).join(', ')}`)
 
     // プラグイン設定の検証
     if (!primaryActionPlugin?.type || !character.personaPlugin?.type || !character.memoryPlugin?.type) {
@@ -975,19 +1165,42 @@ app.post("/api/generate-prompt", async (req, res) => {
     const engine = await initializeEngine()
 
     // プラグインを取得
-    const actionPluginClass = engine.getPlugin('action', primaryActionPlugin.type)
     const personaPlugin = engine.getPlugin('persona', character.personaPlugin.type)
     const memoryPlugin = engine.getPlugin('memory', character.memoryPlugin.type)
 
-    if (!actionPluginClass || !personaPlugin || !memoryPlugin) {
-      console.error(`❌ Missing plugins: action=${!!actionPluginClass}, persona=${!!personaPlugin}, memory=${!!memoryPlugin}`)
+    if (!personaPlugin || !memoryPlugin) {
+      console.error(`❌ Missing plugins: persona=${!!personaPlugin}, memory=${!!memoryPlugin}`)
       return res.status(500).json({ error: "Missing plugins for character" })
     }
 
-    // アクションプラグインをインスタンス化（configを渡す）
-    const actionPlugin = typeof actionPluginClass === 'function' && actionPluginClass.prototype?.listActions
-      ? new actionPluginClass(primaryActionPlugin.config || {})
-      : actionPluginClass
+    // 複数のアクションプラグインをインスタンス化（engine.tsと同じロジック）
+    const actionPluginsInstances = actionPlugins
+      .map(ref => {
+        const pluginClass = engine.getPlugin('action', ref.type)
+        if (!pluginClass) {
+          console.error(`❌ Action plugin not found: ${ref.type}`)
+          return undefined
+        }
+
+        // プラグインがファクトリー関数の場合
+        if (typeof pluginClass === 'function' && !pluginClass.prototype.listActions) {
+          return pluginClass(ref.config || {})
+        }
+
+        // プラグインがクラスの場合、configを渡してインスタンス化
+        if (pluginClass.prototype && pluginClass.prototype.listActions) {
+          return new pluginClass(ref.config || {})
+        }
+
+        // 既存のインスタンスの場合はそのまま使用
+        return pluginClass
+      })
+      .filter(plugin => plugin !== undefined)
+
+    if (actionPluginsInstances.length === 0) {
+      console.error(`❌ No valid action plugins for character`)
+      return res.status(500).json({ error: "No valid action plugins for character" })
+    }
 
     // システムプロンプトを構築
     const systemPrompt = personaPlugin.buildSystemPrompt(character)
@@ -1016,9 +1229,19 @@ app.post("/api/generate-prompt", async (req, res) => {
       }
     }
 
-    // アクション候補を取得
+    // アクション候補を取得（全プラグインから収集し、重複を除去してマージ）
     const actionRegistry = engine.getActionRegistry()
-    const candidates = actionPlugin.listActions(world, character, actionRegistry)
+    const candidatesMap = new Map<string, any>()
+    for (const actionPlugin of actionPluginsInstances) {
+      const pluginCandidates = actionPlugin.listActions(world, character, actionRegistry)
+      console.log(`🔍 [${character.id}] Plugin returned ${pluginCandidates.length} action candidate(s): [${pluginCandidates.map(c => c.actionId).join(', ')}]`)
+      for (const candidate of pluginCandidates) {
+        // 既存の候補とマージ（同じactionIdの場合は上書き）
+        candidatesMap.set(candidate.actionId, candidate)
+      }
+    }
+    const candidates = Array.from(candidatesMap.values())
+    console.log(`🎯 [${character.id}] Total ${candidates.length} unique action(s) available: [${candidates.map(c => c.actionId).join(', ')}]`)
 
     // アクション候補をフォーマット
     const actionsDescription = candidates.map((c: any, idx: number) => {
@@ -1093,7 +1316,17 @@ app.get("/api/health", (req, res) => {
 })
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 ALIM 4.0 Web Server running on http://localhost:${PORT}`)
-  console.log(`   OpenAI API: ${process.env.OPENAI_API_KEY ? "✓ Configured" : "✗ Not configured"}`)
+async function startServer() {
+  // プラグインを起動時にロード
+  await loadAllPlugins()
+
+  app.listen(PORT, () => {
+    console.log(`🚀 ALIM 4.0 Web Server running on http://localhost:${PORT}`)
+    console.log(`   OpenAI API: ${process.env.OPENAI_API_KEY ? "✓ Configured" : "✗ Not configured"}`)
+  })
+}
+
+startServer().catch(err => {
+  console.error("❌ Failed to start server:", err)
+  process.exit(1)
 })

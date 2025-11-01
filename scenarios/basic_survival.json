@@ -42,6 +42,12 @@
         },
         "actionPlugins": [
           {
+            "type": "MISSION_PRIORITY",
+            "config": {
+              "teamResourceThreshold": 10
+            }
+          },
+          {
             "type": "pacifist",
             "config": {}
           },
@@ -64,7 +70,11 @@
         ],
         "llmPlugin": {
           "type": "openai",
-          "config": {}
+          "config": {
+            "apiKey": "your-api-key-here",
+            "model": "gpt-4.1-nano",
+            "temperature": 0.7
+          }
         },
         "contextPlugins": [
           {
@@ -113,8 +123,18 @@
         },
         "actionPlugins": [
           {
+            "type": "PUNCH",
+            "config": {}
+          },
+          {
             "type": "standard",
             "config": {}
+          },
+          {
+            "type": "TALK_MISSION_DIRECTIVE",
+            "config": {
+              "resourceThreshold": 2
+            }
           },
           {
             "type": "MOVE",
@@ -123,15 +143,15 @@
           {
             "type": "START_MISSION",
             "config": {}
-          },
-          {
-            "type": "TALK",
-            "config": {}
           }
         ],
         "llmPlugin": {
           "type": "openai",
-          "config": {}
+          "config": {
+            "apiKey": "your-api-key-here",
+            "model": "gpt-4.1-nano",
+            "temperature": 0.7
+          }
         },
         "contextPlugins": [
           {
@@ -159,7 +179,7 @@
           }
         ],
         "personaPlugin": {
-          "type": "cooperative",
+          "type": "default",
           "config": {}
         },
         "memoryPlugin": {
@@ -167,6 +187,12 @@
           "config": {}
         },
         "actionPlugins": [
+          {
+            "type": "MISSION_PRIORITY",
+            "config": {
+              "teamResourceThreshold": 10
+            }
+          },
           {
             "type": "pacifist",
             "config": {}
@@ -217,6 +243,61 @@
             "type": "team_status",
             "config": {}
           },
+          {
+            "type": "vision",
+            "config": {}
+          }
+        ]
+      },
+      {
+        "id": "TARO",
+        "name": "TARO",
+        "type": "ANDROID",
+        "agi": 25,
+        "life": 3,
+        "x": 3,
+        "y": 2,
+        "inventory": [
+          {
+            "kind": "FOOD_PACK",
+            "amount": 4
+          },
+          {
+            "kind": "WATER_PACK",
+            "amount": 4
+          }
+        ],
+        "personaPlugin": {
+          "type": "childlike",
+          "config": {}
+        },
+        "memoryPlugin": {
+          "type": "lightmem",
+          "config": {}
+        },
+        "actionPlugins": [
+          {
+            "type": "standard",
+            "config": {}
+          },
+          {
+            "type": "STEAL",
+            "config": {}
+          },
+          {
+            "type": "TALK",
+            "config": {}
+          }
+        ],
+        "llmPlugin": {
+          "type": "openai",
+          "config": {
+            "apiKey": "your-api-key-here",
+            "model": "gpt-4.1-nano",
+            "temperature": 0.7
+          }
+        },
+        "contextPlugins": [
           {
             "type": "vision",
             "config": {}

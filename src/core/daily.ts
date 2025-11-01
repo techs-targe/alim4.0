@@ -1,5 +1,5 @@
 import { World, LogEntry } from "../types/index.js"
-import { consumeItem } from "../utils/helpers.js"
+import { consumeItem, dropInventoryItems } from "../utils/helpers.js"
 import { SeededRNG } from "../utils/rng.js"
 
 /**
@@ -47,6 +47,8 @@ export function processDailyUpkeep(world: World, rng: SeededRNG): World {
     // 死亡判定
     if (char.life <= 0) {
       char.alive = false
+      // インベントリをドロップ
+      dropInventoryItems(world, char)
       deathsToday.push(char.id)
     }
 
@@ -91,6 +93,8 @@ function triggerAlarmEvent(world: World, rng: SeededRNG): void {
       char.life -= 1
       if (char.life <= 0) {
         char.alive = false
+        // インベントリをドロップ
+        dropInventoryItems(world, char)
       }
     }
   }

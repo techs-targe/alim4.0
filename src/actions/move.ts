@@ -1,5 +1,5 @@
 import { ActionDefinition, World, Character, ApplyResult, RNGContext } from "../types/index.js"
-import { isInBounds, isObstacle, getCharacterAt } from "../utils/index.js"
+import { isInBounds, isObstacle, getCharacterAt, addItem } from "../utils/index.js"
 import { cloneWorld } from "../core/world.js"
 
 /**
@@ -87,12 +87,34 @@ export const MoveAction: ActionDefinition = {
     updatedActor.x = x
     updatedActor.y = y
 
+    // 移動先に散らばったアイテムがあるかチェック
+    const droppedItemIndex = updatedWorld.droppedItems.findIndex(
+      di => di.x === x && di.y === y
+    )
+
+    let pickedUpItems: string[] | undefined = undefined
+
+    if (droppedItemIndex !== -1) {
+      // アイテムを拾う
+      const droppedItem = updatedWorld.droppedItems[droppedItemIndex]
+      pickedUpItems = []
+
+      for (const item of droppedItem.items) {
+        addItem(updatedActor.inventory, item.kind, item.amount)
+        pickedUpItems.push(`${item.kind}×${item.amount}`)
+      }
+
+      // ドロップアイテムをワールドから削除
+      updatedWorld.droppedItems.splice(droppedItemIndex, 1)
+    }
+
     return {
       worldAfter: updatedWorld,
       alignmentTags: [],
       logDetail: {
         from: { x: actor.x, y: actor.y },
-        to: { x, y }
+        to: { x, y },
+        pickedUpItems
       }
     }
   }

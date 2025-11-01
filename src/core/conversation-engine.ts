@@ -159,11 +159,16 @@ function buildActorSystemPrompt(actor: Character): string {
   if (persona) {
     // personaPluginがインスタンスの場合（buildSystemPromptメソッドを持つ）
     if (typeof (persona as any).buildSystemPrompt === 'function') {
+      const personaType = (persona as any).type || 'unknown'
+      console.log(`💬 [CONVERSATION] Actor ${actor.id} (${actor.name}) using persona: ${personaType}`)
       prompt += `Your personality: ${(persona as any).buildSystemPrompt(actor)}\n\n`
     } else {
       // personaPluginが設定オブジェクトの場合（{type, config}）
+      console.log(`💬 [CONVERSATION] Actor ${actor.id} (${actor.name}) using persona: ${persona.type}`)
       prompt += `Your personality type: ${persona.type}\n\n`
     }
+  } else {
+    console.log(`⚠️  [CONVERSATION] Actor ${actor.id} (${actor.name}) has NO persona plugin!`)
   }
 
   prompt += `Important Instructions:
@@ -231,11 +236,16 @@ function buildTargetSystemPrompt(target: Character): string {
   if (persona) {
     // personaPluginがインスタンスの場合（buildSystemPromptメソッドを持つ）
     if (typeof (persona as any).buildSystemPrompt === 'function') {
+      const personaType = (persona as any).type || 'unknown'
+      console.log(`💬 [CONVERSATION] Target ${target.id} (${target.name}) using persona: ${personaType}`)
       prompt += `Your personality: ${(persona as any).buildSystemPrompt(target)}\n\n`
     } else {
       // personaPluginが設定オブジェクトの場合（{type, config}）
+      console.log(`💬 [CONVERSATION] Target ${target.id} (${target.name}) using persona: ${persona.type}`)
       prompt += `Your personality type: ${persona.type}\n\n`
     }
+  } else {
+    console.log(`⚠️  [CONVERSATION] Target ${target.id} (${target.name}) has NO persona plugin!`)
   }
 
   prompt += `Important Instructions:

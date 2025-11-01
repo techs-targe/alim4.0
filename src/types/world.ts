@@ -1,6 +1,7 @@
 import { Character } from "./character.js"
 import { MissionCard, MissionRuntime } from "./mission.js"
 import { LogEntry } from "./log.js"
+import { InventoryItem } from "./item.js"
 
 /**
  * 充電ステーション
@@ -13,6 +14,15 @@ export interface ChargerStation {
   inUseBy: string | null          // ロボID or null
   chargingTurnsRemaining: number  // 現在の充電アクションがあと何ターン必要か
   broken: boolean                 // オーバークロック等で壊れたら true
+}
+
+/**
+ * 散らばったアイテム（キャラクター死亡時にドロップ）
+ */
+export interface DroppedItem {
+  x: number
+  y: number
+  items: InventoryItem[]
 }
 
 /**
@@ -46,6 +56,8 @@ export interface World {
   rules: Rule[]                  // 倫理・制約
 
   log: LogEntry[]                // 全アクション／日次処理／乱数結果の履歴
+
+  droppedItems: DroppedItem[]    // フィールドに散らばったアイテム（キャラクター死亡時にドロップ）
 
   rngSeed: number                // 乱数シード
   rngState: number               // 現在の乱数状態（次に生成する値のインデックス）
